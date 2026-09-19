@@ -16,32 +16,28 @@ When these changes occur, **conventional software tests almost always still pass
 Benizakura explores how to catch these behavioural regressions before new prompts and configurations are released into production.
 
 ```text
-                  Developer modifies prompt or model
-                                  │
-                                  ▼
-                     ┌──────────────────────────┐
-                     │        Benizakura        │
-                     └────────────┬─────────────┘
-                                  │
-                  Replay standardized evaluation set
-                                  │
-                    ┌─────────────┴─────────────┐
-                    ▼                           ▼
-            Baseline Variant            Candidate Variant
-            (current prompt)            (proposed prompt)
-                    │                           │
-                    └─────────────┬─────────────┘
-                                  ▼
-                    Bidirectional Pairwise Evaluation
-                    (swapped orders to expose bias)
-                                  │
-                                  ▼
-                      Order Normalization & Analysis
-                      (detect bias & check consistency)
-                                  │
-                                  ▼
-                             Release Gate
-                      PASS / FAIL / INCONCLUSIVE
+Case
+ │
+ ▼
+Baseline Variant vs. Candidate Variant
+ │
+ ▼
+Pairwise Judge
+ │
+ ▼
+Bidirectional Evaluation (swapped orders to expose bias)
+ │
+ ▼
+Order Normalization & Instability Detection
+ │
+ ▼
+Statistical Analysis (paired differences, bootstrap CI, effect size)
+ │
+ ▼
+Release Gate (deterministic decision precedence hierarchy)
+ │
+ ▼
+PASS / FAIL / INCONCLUSIVE
 ```
 
 ---
@@ -596,6 +592,49 @@ print(f"Pass 1 Winner: {result.pass1_normalized_winner.value}")
 
 ---
 
+## Code Example: Release Gate Decision Policy
+
+Benizakura strictly separates statistical measurement from release gating policy. `StatisticalAnalysis` answers *"What happened in the evaluation?"*, while `ReleaseGate` answers *"Given our predefined policy, should this candidate be released?"*:
+
+```python
+from benizakura.gate import GateConfig, ReleaseGate
+from benizakura.models import Verdict
+
+# 1. Configure the decision policy (all thresholds are explicit policy choices)
+config = GateConfig(
+    min_cases=10,              # Minimum benchmark cases required
+    max_unstable_rate=0.20,    # Max 20% position-unstable cases permitted
+    regression_tolerance=0.05, # 5% negative buffer on observed difference
+    max_regression_rate=0.25,  # Max 25% individual case regressions permitted
+    min_effect_size=0.05,      # Minimum net advantage (+5%) required to pass
+)
+
+# 2. Evaluate statistical evidence
+gate = ReleaseGate(config=config)
+result = gate.evaluate(analysis)
+
+# 3. Inspect structured, explainable release decision
+print(f"Verdict:             {result.verdict.value}")
+print(f"Observed Difference: {result.observed_difference:+.2f}")
+print(f"95% Bootstrap CI:    [{result.confidence_interval[0]:+.2f}, {result.confidence_interval[1]:+.2f}]")
+print(f"Regression Rate:     {result.regression_rate:.1%} ({result.regression_count} cases: {result.regressed_cases})")
+print(f"Instability Rate:    {result.unstable_rate:.1%} ({result.unstable_count} cases)")
+print(f"Decision Reason:\n  {result.reason}")
+```
+
+### Release Gate Verdict Semantics
+
+The gate applies a deterministic decision precedence hierarchy yielding one of three explicit outcomes:
+
+* **`PASS`**: Evidence supports accepting the candidate under the configured policy. The observed advantage meets the minimum effect size (`min_effect_size`), the bootstrap confidence interval remains within the configured regression tolerance (`regression_tolerance`), and individual case regressions are below `max_regression_rate`.
+* **`FAIL`**: Evidence supports rejecting the candidate because unacceptable regression occurred. Triggered when the bootstrap upper confidence bound falls strictly below `-regression_tolerance` (confident regression), or when the proportion of regressed cases exceeds `max_regression_rate`.
+* **`INCONCLUSIVE`**: Evidence is insufficient or unreliable enough that Benizakura refuses to make a confident release decision. Triggered when the sample size is below `min_cases`, judge position instability exceeds `max_unstable_rate`, or the confidence interval overlaps the decision boundary without clear separation.
+
+> **Important Methodological Note:**
+> Gate thresholds are **policy parameters, not universal statistical truths**. Organizations can and should calibrate `GateConfig` to match their risk tolerance and benchmark characteristics without altering evaluation code.
+
+---
+
 ## Testing & Quality Assurance
 
 Benizakura enforces strict test-driven development. The test suite verifies every layer of the architecture:
@@ -605,15 +644,16 @@ tests/
 ├── test_models.py           # 13 tests: enums, rubric validation, normalization, and consistency
 ├── test_rubric.py           # 25 tests: rubric contracts, criteria validation, structured judgments, serialization
 ├── test_statistical.py      # 22 tests: dataset abstraction, paired differences, bootstrap CI, effect size
+├── test_gate.py             # 29 tests: release gate policy, precedence, safeguards, boundaries, explainability
 ├── test_prompt.py           #  4 tests: prompt construction, symmetry, instructions, deterministic building
 ├── test_parser.py           # 14 tests: JSON parsing, markdown fences, validation rules, error types
-├── test_llm_judge.py        #  6 tests: LLMPairwiseJudge pipeline, mock provider, bidirectional runner
+├── test_llm_judge.py        #  7 tests: LLMPairwiseJudge pipeline, mock provider, bidirectional runner
 ├── test_comparator.py       #  5 tests: PASS, FAIL, INCONCLUSIVE rules and score regression detection
 ├── test_runner.py           #  3 tests: Pointwise MockEvaluator, overrides, and runner flow
 ├── test_judge.py            # 11 tests: PairwiseJudge protocol, MockPairwiseJudge queue & exhaustion
 └── test_pairwise_runner.py  # 10 tests: Order swapping, dual-call verification & position bias detection
 ────────────────────────────────────────────────────────────────────────────────
-Total: 113 passed in ~0.10s
+Total: 142 passed in ~0.10s
 ```
 
 Run test coverage inspection anytime:
@@ -649,7 +689,7 @@ Benizakura is an active engineering and research exploration into reliable LLM e
 
 ### Project Roadmap
 
-* [x] **Phase 1: Deterministic Foundation & Evaluation Core (Current)**
+* [x] **Phase 1: Deterministic Foundation & Evaluation Core (Completed)**
   * Typed domain models, rubric contracts, and domain-independent standard criteria
   * Structured judge outputs (`CriterionAssessment`) and serialization
   * `PairwiseJudge` protocol and deterministic `MockPairwiseJudge`
@@ -663,11 +703,15 @@ Benizakura is an active engineering and research exploration into reliable LLM e
   * Typed error hierarchy (`JudgeParseError`, `JudgeValidationError`, `JudgeProviderError`)
   * `LLMPairwiseJudge` coordinating prompt building, provider generation, and validation
   * 113 unit tests with zero third-party dependencies
-* [ ] **Phase 2: Pairwise Release Gating Policy**
-  * Formal release gating comparator operating on bootstrap confidence intervals and consistency rates
-  * First-class `PASS`, `FAIL`, `INCONCLUSIVE` decision policies grounded in statistical significance
-* [ ] **Phase 3: Real LLM Provider Adapters**
-  * Lightweight provider adapters (Groq, Anthropic, OpenAI) implementing `JudgeProvider`
+* [x] **Phase 2: Release Gate Decision Policy (Completed)**
+  * Structured `GateConfig` with explicit, validated policy parameters and defaults
+  * Structured, explainable `GateResult` tracking verdict, reason, regressions, and instability
+  * Deterministic `ReleaseGate` applying an explicit decision precedence hierarchy
+  * Pure statistical independence: operates entirely on `StatisticalAnalysis`
+  * CLI gate demonstration (`benizakura --demo gate`)
+  * 142 total unit tests (29 dedicated gate tests)
+* [ ] **Phase 3: Real LLM Provider Selection & Integration**
+  * Research-driven provider selection and lightweight adapters (Groq, Anthropic, OpenAI) implementing `JudgeProvider`
   * Exact-match caching to guarantee zero redundant API spend
 * [ ] **Phase 4: Conquer Golden Benchmark**
   * 25–30 stratified test cases spanning System Design, Algorithms, and Architecture

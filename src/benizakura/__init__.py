@@ -51,6 +51,11 @@ from benizakura.statistical import (
     StatisticalAnalysis,
     StatisticalAnalyzer,
 )
+from benizakura.gate import (
+    GateConfig,
+    GateResult,
+    ReleaseGate,
+)
 
 
 __all__ = [
@@ -70,6 +75,8 @@ __all__ = [
     "EvaluationResult",
     "EvaluationRun",
     "EvaluationSample",
+    "GateConfig",
+    "GateResult",
     "JudgeParseError",
     "JudgePromptBuilder",
     "JudgeProvider",
@@ -85,6 +92,7 @@ __all__ = [
     "PairwiseJudgment",
     "PairwiseWinner",
     "RawPositionWinner",
+    "ReleaseGate",
     "Rubric",
     "StandardCriteria",
     "StatisticalAnalysis",
