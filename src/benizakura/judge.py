@@ -3,7 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Protocol, Sequence, runtime_checkable
 
-from benizakura.models import EvaluationCase, PairwiseJudgment, PairwiseWinner, Rubric
+from benizakura.models import (
+    CriterionAssessment,
+    EvaluationCase,
+    PairwiseJudgment,
+    PairwiseWinner,
+    Rubric,
+)
 
 
 @runtime_checkable
@@ -90,7 +96,19 @@ class MockPairwiseJudge:
         if self.default_judgment is not None:
             return self.default_judgment
 
+        assessments: List[CriterionAssessment] = []
+        if rubric is not None and rubric.criteria:
+            assessments = [
+                CriterionAssessment(
+                    criterion_name=c.name,
+                    winner=PairwiseWinner.TIE,
+                    rationale=f"Default mock tie for criterion '{c.name}'.",
+                )
+                for c in rubric.criteria
+            ]
+
         return PairwiseJudgment(
             winner=PairwiseWinner.TIE,
-            reason="Default mock pairwise judgment tie.",
+            rationale="Default mock pairwise judgment tie.",
+            criterion_assessments=assessments,
         )

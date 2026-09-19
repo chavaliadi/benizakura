@@ -307,14 +307,16 @@ benizakura/
 
 | Component | Status | Notes |
 |---|:---:|---|
-| **Typed Domain Models** | ✅ Implemented | Full support for criteria, rubrics, pairwise judgments, and consistency outcomes. |
+| **Typed Domain Models** | ✅ Implemented | Full support for criteria, rubrics, pairwise judgments, criterion assessments, and consistency outcomes. |
+| **Rubric & Criteria Contract** | ✅ Implemented | Weighted criteria, validation, instructions, and domain-independent standard criteria catalog (`StandardCriteria`). |
+| **Structured Judge Output** | ✅ Implemented | `PairwiseJudgment` with structured `CriterionAssessment`, evidence quotes, confidence bounds, and serialization. |
 | **Pointwise Evaluator Protocol** | ✅ Implemented | `Evaluator`, `MockEvaluator`, and `EvaluationRunner` in place. |
 | **Pairwise Judge Protocol** | ✅ Implemented | Typed `PairwiseJudge` protocol with `@runtime_checkable` conformance. |
-| **Deterministic Mock Judge** | ✅ Implemented | Supports default judgments, FIFO queues, overrides, and call recording. |
-| **Bidirectional Runner** | ✅ Implemented | Swaps presentation order, normalizes identities, preserves raw and normalized data. |
+| **Deterministic Mock Judge** | ✅ Implemented | Supports default judgments, FIFO queues, overrides, criterion-level tie generation, and call recording. |
+| **Bidirectional Runner** | ✅ Implemented | Swaps presentation order, normalizes overall & per-criterion identities, preserves raw and normalized data. |
 | **Position Bias Detection** | ✅ Implemented | Identifies order instability via `ConsistencyOutcome.POSITION_UNSTABLE`. |
 | **Provisional Pointwise CLI** | ✅ Implemented | Demonstrates PASS, FAIL, and INCONCLUSIVE scenarios via CLI flags. |
-| **Unit Test Suite** | ✅ Implemented | **42 passing tests** across 5 test suites. Zero external API calls required. |
+| **Unit Test Suite** | ✅ Implemented | **67 passing tests** across 6 test suites. Zero external API calls required. |
 | **Batch Consistency Aggregation** | 🔄 In Progress | Aggregating bidirectional outcomes across full evaluation suites. |
 | **Pairwise Gate Comparator** | 🔄 In Progress | New comparator operating on consistency distributions instead of raw scores. |
 | **Real LLM-backed Judge** | 📌 Planned | Hand-written provider abstraction (Groq, OpenAI, Anthropic). No heavy frameworks. |
@@ -396,23 +398,26 @@ Detected Regressions:
 
 ---
 
-## Code Example: Using the Bidirectional Runner
+## Code Example: Using Rubrics & Bidirectional Runner
 
-Here is how the bidirectional runner is used in Python code with the deterministic mock judge:
+Here is how the rubric contract, structured criterion assessments, and bidirectional runner interact in Python code:
 
 ```python
 from benizakura.models import (
+    CriterionAssessment,
     EvaluationCase,
+    NormalizedWinner,
     PairwiseJudgment,
     PairwiseWinner,
-    NormalizedWinner,
+    Rubric,
+    StandardCriteria,
     classify_consistency,
     ConsistencyOutcome,
 )
 from benizakura.judge import MockPairwiseJudge
 from benizakura.pairwise_runner import BidirectionalPairwiseRunner
 
-# 1. Define an evaluation case
+# 1. Define an evaluation case and explicit rubric contract
 case = EvaluationCase(
     id="case-101",
     topic="System Design",
@@ -420,27 +425,68 @@ case = EvaluationCase(
     candidate_answer="Vertical adds RAM/CPU; horizontal adds machines.",
 )
 
-# 2. Configure a mock judge to simulate a consistent candidate win
-# Pass 1 (A=Base, B=Cand): Candidate (B) wins
-# Pass 2 (A=Cand, B=Base): Candidate (A) wins
-mock_judge = MockPairwiseJudge(judgments=[
-    PairwiseJudgment(winner=PairwiseWinner.B, reason="Candidate provided failure modes."),
-    PairwiseJudgment(winner=PairwiseWinner.A, reason="Candidate provided failure modes."),
-])
+rubric = Rubric(
+    name="System Architecture Rubric",
+    criteria=[StandardCriteria.CORRECTNESS, StandardCriteria.TECHNICAL_DEPTH],
+    instructions="Focus on architectural trade-offs, SPOFs, and failure domains.",
+)
+
+# 2. Configure a mock judge returning structured criterion-level judgments
+pass1_judgment = PairwiseJudgment(
+    winner=PairwiseWinner.B,
+    rationale="Candidate in position B provided explicit failure mode analysis.",
+    criterion_assessments=[
+        CriterionAssessment(
+            criterion_name="correctness",
+            winner=PairwiseWinner.B,
+            rationale="B accurately explained horizontal scaling state management.",
+        ),
+        CriterionAssessment(
+            criterion_name="technical_depth",
+            winner=PairwiseWinner.B,
+            rationale="B addressed load balancer bottlenecks and failover.",
+        ),
+    ],
+)
+
+pass2_judgment = PairwiseJudgment(
+    winner=PairwiseWinner.A,
+    rationale="Candidate in position A provided explicit failure mode analysis.",
+    criterion_assessments=[
+        CriterionAssessment(
+            criterion_name="correctness",
+            winner=PairwiseWinner.A,
+            rationale="A accurately explained horizontal scaling state management.",
+        ),
+        CriterionAssessment(
+            criterion_name="technical_depth",
+            winner=PairwiseWinner.A,
+            rationale="A addressed load balancer bottlenecks and failover.",
+        ),
+    ],
+)
+
+mock_judge = MockPairwiseJudge(judgments=[pass1_judgment, pass2_judgment])
 
 # 3. Execute bidirectional evaluation
 runner = BidirectionalPairwiseRunner(mock_judge)
 result = runner.evaluate(
     case=case,
-    baseline_output="Scale vertically by upgrading your server.",
+    baseline_output="Scale vertically by upgrading your server instance.",
     candidate_output="Scale horizontally with stateless workers behind a load balancer.",
+    rubric=rubric,
 )
 
-# 4. Verify normalized outcomes
+# 4. Verify normalized overall outcomes
 assert result.pass1_normalized_winner == NormalizedWinner.CANDIDATE
 assert result.pass2_normalized_winner == NormalizedWinner.CANDIDATE
 
-# 5. Classify consistency
+# 5. Verify normalized criterion-level outcomes
+norm_corr1, norm_corr2 = result.get_criterion_normalized_winners("correctness")
+assert norm_corr1 == NormalizedWinner.CANDIDATE
+assert norm_corr2 == NormalizedWinner.CANDIDATE
+
+# 6. Classify consistency across presentation passes
 outcome = classify_consistency(
     result.pass1_normalized_winner,
     result.pass2_normalized_winner,
@@ -458,12 +504,13 @@ Benizakura enforces strict test-driven development. The test suite verifies ever
 ```text
 tests/
 ├── test_models.py           # 13 tests: enums, rubric validation, normalization, and consistency
+├── test_rubric.py           # 25 tests: rubric contracts, criteria validation, structured judgments, serialization
 ├── test_comparator.py       #  5 tests: PASS, FAIL, INCONCLUSIVE rules and score regression detection
 ├── test_runner.py           #  3 tests: Pointwise MockEvaluator, overrides, and runner flow
 ├── test_judge.py            # 11 tests: PairwiseJudge protocol, MockPairwiseJudge queue & exhaustion
 └── test_pairwise_runner.py  # 10 tests: Order swapping, dual-call verification & position bias detection
 ────────────────────────────────────────────────────────────────────────────────
-Total: 42 passed in ~0.04s
+Total: 67 passed in ~0.08s
 ```
 
 Run test coverage inspection anytime:
@@ -477,10 +524,12 @@ pytest --tb=short
 ## Design Principles
 
 1. **Deterministic Core First:** We build and thoroughly test the execution, normalization, and gating algorithms using deterministic test doubles before connecting expensive, nondeterministic external LLM APIs.
-2. **Strict Separation of Presentation vs. Identity:** The judge only evaluates presented positions (`A` and `B`). The runner manages presentation order and system identities (`Baseline` and `Candidate`). Neither layer leaks into the other.
-3. **Preserve Raw Evidence:** The system never discards raw judge outputs. Both raw position judgments and normalized identities are recorded side-by-side for full auditability.
-4. **Surface Uncertainty, Don't Hide It:** When results conflict due to position bias or high variance, the system emits `POSITION_UNSTABLE` or `INCONCLUSIVE` rather than guessing a binary pass or fail.
-5. **Zero Heavy Framework Bloat:** We avoid heavyweight orchestration frameworks (like LangChain) in core execution paths. Transparent, standard-library Python dataclasses and protocols make attribution and debugging obvious.
+2. **Explicit Evaluation Contracts:** We evaluate pairs against clear, weighted rubrics and evaluation instructions rather than unconstrained comparison prompts.
+3. **Structured Evidence over Opaque Scores:** Judges emit structured per-criterion assessments (`CriterionAssessment`) with rationales and evidence excerpts alongside overall verdicts.
+4. **Strict Separation of Presentation vs. Identity:** The judge only evaluates presented positions (`A` and `B`). The runner manages presentation order and system identities (`Baseline` and `Candidate`). Neither layer leaks into the other.
+5. **Preserve Raw Evidence:** The system never discards raw judge outputs. Both raw position judgments and normalized identities are recorded side-by-side for full auditability.
+6. **Surface Uncertainty, Don't Hide It:** When results conflict due to position bias or high variance, the system emits `POSITION_UNSTABLE` or `INCONCLUSIVE` rather than guessing a binary pass or fail.
+7. **Zero Heavy Framework Bloat:** We avoid heavyweight orchestration frameworks (like LangChain) in core execution paths. Transparent, standard-library Python dataclasses and protocols make attribution and debugging obvious.
 
 ---
 
@@ -496,11 +545,12 @@ Benizakura is an active engineering and research exploration into reliable LLM e
 ### Project Roadmap
 
 * [x] **Phase 1: Deterministic Foundation (Current)**
-  * Typed domain models and rubric structures
+  * Typed domain models, rubric contracts, and domain-independent standard criteria
+  * Structured judge outputs (`CriterionAssessment`) and serialization
   * `PairwiseJudge` protocol and deterministic `MockPairwiseJudge`
-  * `BidirectionalPairwiseRunner` with presentation swapping
-  * Order normalization and position instability classification
-  * 42 unit tests with zero third-party dependencies
+  * `BidirectionalPairwiseRunner` with presentation swapping and order normalization
+  * Position instability classification
+  * 67 unit tests with zero third-party dependencies
 * [ ] **Phase 2: Real LLM Judge Integration**
   * Lightweight provider abstraction (Groq, Anthropic, OpenAI)
   * Versioned judge prompt artifacts and structured output schemas
