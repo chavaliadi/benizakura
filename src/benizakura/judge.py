@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Protocol, Sequence, runtime_checkable
 
+from benizakura.llm_judge import LLMPairwiseJudge
 from benizakura.models import (
     CriterionAssessment,
     EvaluationCase,
@@ -10,6 +11,23 @@ from benizakura.models import (
     PairwiseWinner,
     Rubric,
 )
+from benizakura.parser import JudgeResponseParser
+from benizakura.prompt import JudgePromptBuilder
+from benizakura.provider import JudgeProvider, JudgeRequest, JudgeResponse, MockJudgeProvider
+
+
+__all__ = [
+    "PairwiseJudge",
+    "PairwiseJudgeCall",
+    "MockPairwiseJudge",
+    "LLMPairwiseJudge",
+    "JudgeProvider",
+    "JudgeRequest",
+    "JudgeResponse",
+    "MockJudgeProvider",
+    "JudgePromptBuilder",
+    "JudgeResponseParser",
+]
 
 
 @runtime_checkable

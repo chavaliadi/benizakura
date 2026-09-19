@@ -16,17 +16,30 @@ Prompt and application AI behavior regression testing:
 - Gating CI/CD with automated `PASS`, `FAIL`, or `INCONCLUSIVE` verdicts.
 
 ## Current Status
-- **Core Pairwise & Rubric Layer Implemented**:
+- **Core Pairwise, Rubric, Statistical & LLM Judge Layer Implemented**:
   - Typed domain models (`EvaluationCase`, `EvaluationResult`, `EvaluationRun`, `Verdict`, `ComparisonResult`).
   - Rubric contract and criteria validation with non-empty strings, non-negative weights, evaluation instructions, and domain-independent standard criteria library (`StandardCriteria`).
   - Structured judge judgments (`PairwiseJudgment`) supporting per-criterion assessments (`CriterionAssessment`), evidence quotes, confidence bounds, and serialization round-trips.
-  - Pairwise protocol (`PairwiseJudge`) and deterministic test double (`MockPairwiseJudge`).
+  - Pairwise protocol (`PairwiseJudge`) and deterministic test doubles (`MockPairwiseJudge`, `MockJudgeProvider`).
   - `BidirectionalPairwiseRunner` executing presentation-swapped passes, normalising both overall and criterion-level winners, and classifying position instability.
+  - Evaluation dataset abstraction (`EvaluationDataset`, `EvaluationSample`) preserving case identity mappings and enforcing uniqueness.
+  - Deterministic statistical analysis engine (`StatisticalAnalyzer`, `StatisticalAnalysis`):
+    - Empirical candidate/baseline/tie win rates and consistency rates with explicit sample-size denominators.
+    - Criterion-level aggregation (`CriterionAggregate`) without fabricating missing criteria.
+    - Paired difference per-case modeling ($D_i \in \{-1.0, 0.0, +1.0\}$) and explicit regression tracking (`get_regressed_cases()`, `get_improved_cases()`).
+    - Paired bootstrap resampling with replacement estimating percentile confidence intervals around win-rate differences.
+    - Effect size representation (`EffectSize`) with net win rate delta and Cohen's $g$ for decisive pairs.
+  - Provider-independent LLM Judge abstraction:
+    - Generic `JudgeProvider` protocol (`generate(JudgeRequest) -> JudgeResponse`) with zero vendor SDK leakage.
+    - `JudgePromptBuilder` generating position-symmetric, instruction-guided prompts without leaking candidate/baseline identities.
+    - `JudgeResponseParser` validating JSON structure, markdown code fences, schema semantics, and rubric criterion containment.
+    - Explicit, typed error hierarchy (`JudgeParseError`, `JudgeValidationError`, `JudgeProviderError`).
+    - `LLMPairwiseJudge` orchestrating prompt construction, provider completion, and response validation.
   - Provisional `SimpleComparator` implementing clear regression detection and improvement gating for pointwise runs.
   - 5 placeholder development cases in `evals/conquer/cases.json`.
   - Interactive CLI entry point (`benizakura` / `python3 -m benizakura.cli`).
-  - Unit test suite running via `pytest` (**67 passing tests**).
-- **Evaluation Methodology**: Rubric-based pairwise judging with bidirectional position normalization implemented; statistical bootstrap CI and LLM provider integration planned for subsequent phases.
+  - Unit test suite running via `pytest` (**113 passing tests**).
+- **Evaluation Methodology**: Statistical paired bootstrap evaluation core and provider-independent LLM judge abstraction implemented. Live LLM vendor adapters (Groq, Anthropic, OpenAI) and release gating policies planned for subsequent phases.
 
 ---
 

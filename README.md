@@ -307,20 +307,23 @@ benizakura/
 
 | Component | Status | Notes |
 |---|:---:|---|
-| **Typed Domain Models** | ✅ Implemented | Full support for criteria, rubrics, pairwise judgments, criterion assessments, and consistency outcomes. |
+| **Typed Domain Models** | ✅ Implemented | Criteria, rubrics, pairwise judgments, criterion assessments, and consistency outcomes. |
 | **Rubric & Criteria Contract** | ✅ Implemented | Weighted criteria, validation, instructions, and domain-independent standard criteria catalog (`StandardCriteria`). |
 | **Structured Judge Output** | ✅ Implemented | `PairwiseJudgment` with structured `CriterionAssessment`, evidence quotes, confidence bounds, and serialization. |
-| **Pointwise Evaluator Protocol** | ✅ Implemented | `Evaluator`, `MockEvaluator`, and `EvaluationRunner` in place. |
-| **Pairwise Judge Protocol** | ✅ Implemented | Typed `PairwiseJudge` protocol with `@runtime_checkable` conformance. |
-| **Deterministic Mock Judge** | ✅ Implemented | Supports default judgments, FIFO queues, overrides, criterion-level tie generation, and call recording. |
 | **Bidirectional Runner** | ✅ Implemented | Swaps presentation order, normalizes overall & per-criterion identities, preserves raw and normalized data. |
 | **Position Bias Detection** | ✅ Implemented | Identifies order instability via `ConsistencyOutcome.POSITION_UNSTABLE`. |
-| **Provisional Pointwise CLI** | ✅ Implemented | Demonstrates PASS, FAIL, and INCONCLUSIVE scenarios via CLI flags. |
-| **Unit Test Suite** | ✅ Implemented | **67 passing tests** across 6 test suites. Zero external API calls required. |
-| **Batch Consistency Aggregation** | 🔄 In Progress | Aggregating bidirectional outcomes across full evaluation suites. |
-| **Pairwise Gate Comparator** | 🔄 In Progress | New comparator operating on consistency distributions instead of raw scores. |
-| **Real LLM-backed Judge** | 📌 Planned | Hand-written provider abstraction (Groq, OpenAI, Anthropic). No heavy frameworks. |
-| **Bootstrap Confidence Intervals** | 📌 Planned | 10,000-iteration bootstrap on paired deltas before declaring statistical PASS/FAIL. |
+| **Evaluation Dataset Abstraction** | ✅ Implemented | `EvaluationSample` and `EvaluationDataset` preserving case identities with duplicate detection. |
+| **Statistical Aggregations & Rates** | ✅ Implemented | Empirical candidate/baseline/tie win rates and consistency rates with explicit sample-size denominators. |
+| **Criterion-Level Aggregation** | ✅ Implemented | `CriterionAggregate` breakdown by criterion without fabricating missing assessments. |
+| **Paired Differences & Attribution** | ✅ Implemented | `PairedCaseOutcome` ($D_i \in \{-1, 0, +1\}$) tracking regression lists (`get_regressed_cases()`, `get_improved_cases()`). |
+| **Bootstrap Confidence Intervals** | ✅ Implemented | Deterministic paired case resampling with replacement for percentile confidence intervals on win-rate differences. |
+| **Effect Size Representation** | ✅ Implemented | `EffectSize` capturing net win rate difference ($\Delta_{win}$) and Cohen's $g$ for decisive pairs. |
+| **Provider-Independent Judge Abstraction** | ✅ Implemented | `JudgeProvider` protocol, `JudgeRequest`, `JudgeResponse`, and `MockJudgeProvider` test double. |
+| **Prompt Construction & Response Parsing** | ✅ Implemented | `JudgePromptBuilder`, `JudgeResponseParser` (JSON & markdown fenced), and typed error hierarchy (`JudgeParseError`, `JudgeValidationError`). |
+| **LLM Pairwise Judge** | ✅ Implemented | `LLMPairwiseJudge` coordinating prompt builder, provider, and parser while conforming to `PairwiseJudge`. |
+| **Unit Test Suite** | ✅ Implemented | **113 passing tests** across 10 test suites. Zero external API calls required. |
+| **Real LLM Provider Adapters** | 📌 Planned | Hand-written concrete adapters (OpenAI, Anthropic, Groq) implementing `JudgeProvider`. |
+| **Pairwise Release Gate Policy** | 📌 Planned | Formal PASS / FAIL / INCONCLUSIVE release gating thresholds built on top of the statistical layer. |
 | **Conquer Golden Benchmark** | 📌 Planned | Expanding beyond 5 placeholder cases to 25–30 stratified interview scenarios. |
 | **GitHub Actions CI/CD Gate** | 📌 Planned | Automated PR commentary and blocking merge gates on detected regressions. |
 
@@ -497,6 +500,102 @@ print(f"Outcome: {outcome.value}")
 
 ---
 
+## Code Example: Statistical Evaluation & Bootstrap Confidence
+
+Here is how a collection of evaluation cases is aggregated into paired differences, empirical win rates, and bootstrap confidence intervals:
+
+```python
+from benizakura.statistical import (
+    EvaluationDataset,
+    EvaluationSample,
+    StatisticalAnalyzer,
+)
+
+# 1. Collect evaluated benchmark samples (preserving case identities)
+dataset = EvaluationDataset(samples=[
+    EvaluationSample(case_id="case-101", result=result),
+    # ... additional evaluated cases ...
+])
+
+# 2. Configure deterministic statistical analyzer
+analyzer = StatisticalAnalyzer(
+    confidence_level=0.95,
+    num_bootstrap_samples=1000,
+    random_seed=42,
+)
+
+# 3. Compute empirical rates and paired bootstrap confidence interval
+analysis = analyzer.analyze(dataset)
+
+print(f"Cases Evaluated:      {analysis.sample_size}")
+print(f"Candidate Win Rate:   {analysis.candidate_win_rate:.2%}")
+print(f"Baseline Win Rate:    {analysis.baseline_win_rate:.2%}")
+print(f"Observed Difference:  {analysis.observed_difference:+.2f}")
+print(f"95% Bootstrap CI:     [{analysis.confidence_interval[0]:+.2f}, {analysis.confidence_interval[1]:+.2f}]")
+print(f"Effect Size:          {analysis.effect_size.interpretation}")
+
+# 4. Explicit case attribution: which exact cases regressed?
+regressed = analysis.get_regressed_cases()
+improved = analysis.get_improved_cases()
+print(f"Regressed Cases:      {regressed}")
+print(f"Improved Cases:       {improved}")
+```
+
+---
+
+---
+
+## Code Example: LLM Pairwise Judge with Provider Abstraction
+
+Here is how the provider-independent `LLMPairwiseJudge` orchestrates prompt generation, provider execution, and structured response parsing:
+
+```python
+from benizakura.judge import (
+    LLMPairwiseJudge,
+    MockJudgeProvider,
+)
+from benizakura.models import EvaluationCase, Rubric, StandardCriteria
+from benizakura.pairwise_runner import BidirectionalPairwiseRunner
+
+# 1. Configure a provider (here using the deterministic mock provider)
+mock_response = """
+{
+    "winner": "B",
+    "rationale": "Position B provided concrete failure domain analysis.",
+    "confidence": 0.88,
+    "criterion_assessments": [
+        {
+            "criterion_name": "correctness",
+            "winner": "B",
+            "rationale": "Position B accurately explained write amplification."
+        }
+    ]
+}
+"""
+provider = MockJudgeProvider(default_response=mock_response)
+
+# 2. Instantiate LLMPairwiseJudge
+judge = LLMPairwiseJudge(provider=provider)
+
+# 3. Use interchangeably with BidirectionalPairwiseRunner
+runner = BidirectionalPairwiseRunner(judge=judge)
+result = runner.evaluate(
+    case=EvaluationCase(
+        id="case-001",
+        topic="Databases",
+        question="Explain write amplification in LSM trees.",
+        candidate_answer="Compaction merges SSTables to reclaim disk space.",
+    ),
+    baseline_output="LSM trees write to memtable and flush to disk.",
+    candidate_output="LSM trees buffer writes in memtable, flush to SSTables, and compact in background.",
+    rubric=Rubric(name="DB", criteria=[StandardCriteria.CORRECTNESS]),
+)
+
+print(f"Pass 1 Winner: {result.pass1_normalized_winner.value}")
+```
+
+---
+
 ## Testing & Quality Assurance
 
 Benizakura enforces strict test-driven development. The test suite verifies every layer of the architecture:
@@ -505,12 +604,16 @@ Benizakura enforces strict test-driven development. The test suite verifies ever
 tests/
 ├── test_models.py           # 13 tests: enums, rubric validation, normalization, and consistency
 ├── test_rubric.py           # 25 tests: rubric contracts, criteria validation, structured judgments, serialization
+├── test_statistical.py      # 22 tests: dataset abstraction, paired differences, bootstrap CI, effect size
+├── test_prompt.py           #  4 tests: prompt construction, symmetry, instructions, deterministic building
+├── test_parser.py           # 14 tests: JSON parsing, markdown fences, validation rules, error types
+├── test_llm_judge.py        #  6 tests: LLMPairwiseJudge pipeline, mock provider, bidirectional runner
 ├── test_comparator.py       #  5 tests: PASS, FAIL, INCONCLUSIVE rules and score regression detection
 ├── test_runner.py           #  3 tests: Pointwise MockEvaluator, overrides, and runner flow
 ├── test_judge.py            # 11 tests: PairwiseJudge protocol, MockPairwiseJudge queue & exhaustion
 └── test_pairwise_runner.py  # 10 tests: Order swapping, dual-call verification & position bias detection
 ────────────────────────────────────────────────────────────────────────────────
-Total: 67 passed in ~0.08s
+Total: 113 passed in ~0.10s
 ```
 
 Run test coverage inspection anytime:
@@ -524,12 +627,14 @@ pytest --tb=short
 ## Design Principles
 
 1. **Deterministic Core First:** We build and thoroughly test the execution, normalization, and gating algorithms using deterministic test doubles before connecting expensive, nondeterministic external LLM APIs.
-2. **Explicit Evaluation Contracts:** We evaluate pairs against clear, weighted rubrics and evaluation instructions rather than unconstrained comparison prompts.
-3. **Structured Evidence over Opaque Scores:** Judges emit structured per-criterion assessments (`CriterionAssessment`) with rationales and evidence excerpts alongside overall verdicts.
-4. **Strict Separation of Presentation vs. Identity:** The judge only evaluates presented positions (`A` and `B`). The runner manages presentation order and system identities (`Baseline` and `Candidate`). Neither layer leaks into the other.
-5. **Preserve Raw Evidence:** The system never discards raw judge outputs. Both raw position judgments and normalized identities are recorded side-by-side for full auditability.
-6. **Surface Uncertainty, Don't Hide It:** When results conflict due to position bias or high variance, the system emits `POSITION_UNSTABLE` or `INCONCLUSIVE` rather than guessing a binary pass or fail.
-7. **Zero Heavy Framework Bloat:** We avoid heavyweight orchestration frameworks (like LangChain) in core execution paths. Transparent, standard-library Python dataclasses and protocols make attribution and debugging obvious.
+2. **Provider Independence:** The evaluation contract belongs strictly to Benizakura. The model provider only executes raw text generation (`JudgeRequest` → `JudgeResponse`). Vendor SDKs never leak into domain models.
+3. **Explicit Evaluation Contracts:** We evaluate pairs against clear, weighted rubrics and evaluation instructions rather than unconstrained comparison prompts.
+4. **Structured Evidence over Opaque Scores:** Judges emit structured per-criterion assessments (`CriterionAssessment`) with rationales and evidence excerpts alongside overall verdicts.
+5. **Preserve Paired Case Identity:** Statistical analysis operates on paired observations $(B_i, C_i)$ with exact case tracking; regressions and improvements are never lost in aggregate means.
+6. **Surface Uncertainty, Don't Guess:** Bootstrap confidence intervals quantify empirical uncertainty. Release gating decisions are kept strictly separate from measurement.
+7. **Strict Separation of Presentation vs. Identity:** The judge only evaluates presented positions (`A` and `B`). The runner manages presentation order and system identities (`Baseline` and `Candidate`). Neither layer leaks into the other.
+8. **Preserve Raw Evidence:** The system never discards raw judge outputs. Both raw position judgments and normalized identities are recorded side-by-side for full auditability.
+9. **Zero Heavy Framework Bloat:** We avoid heavyweight orchestration frameworks (like LangChain) in core execution paths. Transparent, standard-library Python dataclasses and protocols make attribution and debugging obvious.
 
 ---
 
@@ -540,25 +645,30 @@ Benizakura is an active engineering and research exploration into reliable LLM e
 * **LLM-as-a-Judge & Chatbot Arena** (*Zheng et al., 2023*): Validated pairwise comparison as more robust than absolute scoring.
 * **G-Eval & Rubric-based Scoring** (*Liu et al., 2023*): Formulating explicit criteria and probability-weighted evaluations.
 * **Position & Cognitive Bias Mitigation**: Designing algorithmic defenses against presentation order bias, verbosity bias, and model self-enhancement.
-* **Statistical Calibration**: Measuring inter-rater agreement (Cohen’s $\kappa$) against human experts and running bootstrap confidence intervals across paired score differences.
+* **Statistical Calibration & Paired Bootstrap**: Measuring paired case deltas and estimating confidence intervals via paired case resampling with replacement.
 
 ### Project Roadmap
 
-* [x] **Phase 1: Deterministic Foundation (Current)**
+* [x] **Phase 1: Deterministic Foundation & Evaluation Core (Current)**
   * Typed domain models, rubric contracts, and domain-independent standard criteria
   * Structured judge outputs (`CriterionAssessment`) and serialization
   * `PairwiseJudge` protocol and deterministic `MockPairwiseJudge`
   * `BidirectionalPairwiseRunner` with presentation swapping and order normalization
   * Position instability classification
-  * 67 unit tests with zero third-party dependencies
-* [ ] **Phase 2: Real LLM Judge Integration**
-  * Lightweight provider abstraction (Groq, Anthropic, OpenAI)
-  * Versioned judge prompt artifacts and structured output schemas
+  * `EvaluationDataset` preserving case identities and validating uniqueness
+  * Empirical rate calculations with explicit sample-size denominators
+  * Per-criterion aggregations and paired delta modeling ($D_i \in \{-1, 0, +1\}$)
+  * Paired bootstrap confidence intervals and effect size representation
+  * `JudgeProvider` protocol, `JudgePromptBuilder`, and `JudgeResponseParser`
+  * Typed error hierarchy (`JudgeParseError`, `JudgeValidationError`, `JudgeProviderError`)
+  * `LLMPairwiseJudge` coordinating prompt building, provider generation, and validation
+  * 113 unit tests with zero third-party dependencies
+* [ ] **Phase 2: Pairwise Release Gating Policy**
+  * Formal release gating comparator operating on bootstrap confidence intervals and consistency rates
+  * First-class `PASS`, `FAIL`, `INCONCLUSIVE` decision policies grounded in statistical significance
+* [ ] **Phase 3: Real LLM Provider Adapters**
+  * Lightweight provider adapters (Groq, Anthropic, OpenAI) implementing `JudgeProvider`
   * Exact-match caching to guarantee zero redundant API spend
-* [ ] **Phase 3: Statistical Gating Engine**
-  * Batch runner aggregating bidirectional outcomes across benchmark suites
-  * Paired difference testing and 10,000-iteration bootstrap confidence intervals
-  * First-class `INCONCLUSIVE` verdict when confidence intervals cross zero
 * [ ] **Phase 4: Conquer Golden Benchmark**
   * 25–30 stratified test cases spanning System Design, Algorithms, and Architecture
   * Edge cases: subtle technical errors, verbose superficial answers, code formatting

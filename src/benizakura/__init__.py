@@ -23,11 +23,38 @@ from benizakura.models import (
 )
 from benizakura.runner import EvaluationRunner, Evaluator, MockEvaluator
 from benizakura.comparator import Comparator, SimpleComparator
-from benizakura.judge import MockPairwiseJudge, PairwiseJudge, PairwiseJudgeCall
+from benizakura.errors import (
+    BenizakuraJudgeError,
+    JudgeParseError,
+    JudgeProviderError,
+    JudgeValidationError,
+)
+from benizakura.judge import (
+    JudgePromptBuilder,
+    JudgeProvider,
+    JudgeRequest,
+    JudgeResponse,
+    JudgeResponseParser,
+    LLMPairwiseJudge,
+    MockJudgeProvider,
+    MockPairwiseJudge,
+    PairwiseJudge,
+    PairwiseJudgeCall,
+)
 from benizakura.pairwise_runner import BidirectionalPairwiseRunner
+from benizakura.statistical import (
+    CriterionAggregate,
+    EffectSize,
+    EvaluationDataset,
+    EvaluationSample,
+    PairedCaseOutcome,
+    StatisticalAnalysis,
+    StatisticalAnalyzer,
+)
 
 
 __all__ = [
+    "BenizakuraJudgeError",
     "BidirectionalEvaluationResult",
     "BidirectionalResult",
     "ComparisonIdentity",
@@ -35,16 +62,33 @@ __all__ = [
     "ConsistencyClassification",
     "ConsistencyOutcome",
     "Criterion",
+    "CriterionAggregate",
     "CriterionAssessment",
+    "EffectSize",
     "EvaluationCase",
+    "EvaluationDataset",
     "EvaluationResult",
     "EvaluationRun",
+    "EvaluationSample",
+    "JudgeParseError",
+    "JudgePromptBuilder",
+    "JudgeProvider",
+    "JudgeProviderError",
+    "JudgeRequest",
+    "JudgeResponse",
+    "JudgeResponseParser",
+    "JudgeValidationError",
+    "LLMPairwiseJudge",
+    "MockJudgeProvider",
     "NormalizedWinner",
+    "PairedCaseOutcome",
     "PairwiseJudgment",
     "PairwiseWinner",
     "RawPositionWinner",
     "Rubric",
     "StandardCriteria",
+    "StatisticalAnalysis",
+    "StatisticalAnalyzer",
     "Verdict",
     "classify_consistency",
     "EvaluationRunner",
