@@ -1,0 +1,156 @@
+{
+  "seed": 42,
+  "benchmark_id": "conquer-benchmark-v1",
+  "mappings": {
+    "dsa-001": {
+      "response_a": "BASELINE",
+      "response_b": "CANDIDATE",
+      "swapped": false
+    },
+    "dsa-002": {
+      "response_a": "BASELINE",
+      "response_b": "CANDIDATE",
+      "swapped": false
+    },
+    "dsa-003": {
+      "response_a": "CANDIDATE",
+      "response_b": "BASELINE",
+      "swapped": true
+    },
+    "dsa-004": {
+      "response_a": "BASELINE",
+      "response_b": "CANDIDATE",
+      "swapped": false
+    },
+    "dsa-005": {
+      "response_a": "BASELINE",
+      "response_b": "CANDIDATE",
+      "swapped": false
+    },
+    "dsa-006": {
+      "response_a": "BASELINE",
+      "response_b": "CANDIDATE",
+      "swapped": false
+    },
+    "sys-001": {
+      "response_a": "BASELINE",
+      "response_b": "CANDIDATE",
+      "swapped": false
+    },
+    "sys-002": {
+      "response_a": "BASELINE",
+      "response_b": "CANDIDATE",
+      "swapped": false
+    },
+    "sys-003": {
+      "response_a": "CANDIDATE",
+      "response_b": "BASELINE",
+      "swapped": true
+    },
+    "sys-004": {
+      "response_a": "BASELINE",
+      "response_b": "CANDIDATE",
+      "swapped": false
+    },
+    "sys-005": {
+      "response_a": "BASELINE",
+      "response_b": "CANDIDATE",
+      "swapped": false
+    },
+    "sys-006": {
+      "response_a": "BASELINE",
+      "response_b": "CANDIDATE",
+      "swapped": false
+    },
+    "sys-007": {
+      "response_a": "BASELINE",
+      "response_b": "CANDIDATE",
+      "swapped": false
+    },
+    "sys-008": {
+      "response_a": "BASELINE",
+      "response_b": "CANDIDATE",
+      "swapped": false
+    },
+    "backend-001": {
+      "response_a": "BASELINE",
+      "response_b": "CANDIDATE",
+      "swapped": false
+    },
+    "backend-002": {
+      "response_a": "BASELINE",
+      "response_b": "CANDIDATE",
+      "swapped": false
+    },
+    "backend-003": {
+      "response_a": "CANDIDATE",
+      "response_b": "BASELINE",
+      "swapped": true
+    },
+    "backend-004": {
+      "response_a": "BASELINE",
+      "response_b": "CANDIDATE",
+      "swapped": false
+    },
+    "backend-005": {
+      "response_a": "CANDIDATE",
+      "response_b": "BASELINE",
+      "swapped": true
+    },
+    "backend-006": {
+      "response_a": "CANDIDATE",
+      "response_b": "BASELINE",
+      "swapped": true
+    },
+    "frontend-001": {
+      "response_a": "BASELINE",
+      "response_b": "CANDIDATE",
+      "swapped": false
+    },
+    "frontend-002": {
+      "response_a": "BASELINE",
+      "response_b": "CANDIDATE",
+      "swapped": false
+    },
+    "frontend-003": {
+      "response_a": "CANDIDATE",
+      "response_b": "BASELINE",
+      "swapped": true
+    },
+    "frontend-004": {
+      "response_a": "CANDIDATE",
+      "response_b": "BASELINE",
+      "swapped": true
+    },
+    "behavioral-001": {
+      "response_a": "CANDIDATE",
+      "response_b": "BASELINE",
+      "swapped": true
+    },
+    "behavioral-002": {
+      "response_a": "BASELINE",
+      "response_b": "CANDIDATE",
+      "swapped": false
+    },
+    "behavioral-003": {
+      "response_a": "BASELINE",
+      "response_b": "CANDIDATE",
+      "swapped": false
+    },
+    "behavioral-004": {
+      "response_a": "CANDIDATE",
+      "response_b": "BASELINE",
+      "swapped": true
+    },
+    "behavioral-005": {
+      "response_a": "BASELINE",
+      "response_b": "CANDIDATE",
+      "swapped": false
+    },
+    "behavioral-006": {
+      "response_a": "BASELINE",
+      "response_b": "CANDIDATE",
+      "swapped": false
+    }
+  }
+}

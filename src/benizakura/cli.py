@@ -32,7 +32,114 @@ def load_cases(path: Path) -> List[EvaluationCase]:
     return cases
 
 
+def _run_benchmark_cli(sub_argv: list[str]) -> int:
+    from benizakura.benchmark import (
+        compute_benchmark_hash,
+        generate_blinded_annotation_tasks,
+        validate_benchmark,
+    )
+
+    bench_parser = argparse.ArgumentParser(
+        prog="benizakura benchmark",
+        description="Benchmark validation, integrity hashing, and blinding utilities.",
+    )
+    subparsers = bench_parser.add_subparsers(dest="benchmark_command", required=True)
+
+    # validate
+    validate_parser = subparsers.add_parser("validate", help="Validate benchmark dataset structure and leakage.")
+    validate_parser.add_argument(
+        "path",
+        type=Path,
+        nargs="?",
+        default=Path("evals/conquer/benchmark_v1.json"),
+        help="Path to benchmark JSON (default: evals/conquer/benchmark_v1.json).",
+    )
+
+    # hash
+    hash_parser = subparsers.add_parser("hash", help="Compute deterministic SHA-256 hash of benchmark.")
+    hash_parser.add_argument(
+        "path",
+        type=Path,
+        nargs="?",
+        default=Path("evals/conquer/benchmark_v1.json"),
+        help="Path to benchmark JSON (default: evals/conquer/benchmark_v1.json).",
+    )
+    hash_parser.add_argument(
+        "--write",
+        action="store_true",
+        help="Write computed hash to companion .sha256 file.",
+    )
+
+    # blind
+    blind_parser = subparsers.add_parser("blind", help="Generate double-blind annotation tasks and private key.")
+    blind_parser.add_argument(
+        "path",
+        type=Path,
+        nargs="?",
+        default=Path("evals/conquer/benchmark_v1.json"),
+        help="Path to benchmark JSON (default: evals/conquer/benchmark_v1.json).",
+    )
+    blind_parser.add_argument(
+        "--out-tasks",
+        type=Path,
+        default=Path("evals/conquer/annotations/blinded_tasks.json"),
+        help="Output path for blinded tasks JSON.",
+    )
+    blind_parser.add_argument(
+        "--out-key",
+        type=Path,
+        default=Path("evals/conquer/annotations/blinding_key_v1.json"),
+        help="Output path for private unblinding key JSON.",
+    )
+    blind_parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed for deterministic presentation swapping.",
+    )
+
+    args = bench_parser.parse_args(sub_argv)
+
+    if args.benchmark_command == "validate":
+        report = validate_benchmark(args.path)
+        print(report.summary())
+        return 0 if report.is_valid else 1
+
+    elif args.benchmark_command == "hash":
+        sha = compute_benchmark_hash(args.path)
+        print(f"SHA256 ({args.path}):\n{sha}")
+        if args.write:
+            companion_path = args.path.with_suffix(".sha256")
+            with open(companion_path, "w", encoding="utf-8") as f:
+                f.write(f"{sha}  {args.path}\n")
+            print(f"Wrote checksum to {companion_path}")
+        return 0
+
+    elif args.benchmark_command == "blind":
+        tasks, key_map = generate_blinded_annotation_tasks(args.path, seed=args.seed)
+        args.out_tasks.parent.mkdir(parents=True, exist_ok=True)
+        args.out_key.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(args.out_tasks, "w", encoding="utf-8") as f:
+            json.dump(tasks, f, indent=2)
+        with open(args.out_key, "w", encoding="utf-8") as f:
+            json.dump(key_map, f, indent=2)
+
+        print(f"Successfully generated {len(tasks)} double-blind annotation tasks:")
+        print(f"  - Blinded Tasks: {args.out_tasks}")
+        print(f"  - Private Key:   {args.out_key}")
+        return 0
+
+    return 1
+
+
 def main(argv: list[str] | None = None) -> int:
+    if argv is None:
+        argv = sys.argv[1:]
+
+    if argv and argv[0] == "benchmark":
+        return _run_benchmark_cli(argv[1:])
+
     parser = argparse.ArgumentParser(
         prog="benizakura",
         description="Benizakura: Regression testing change gate for AI behavior.",

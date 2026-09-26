@@ -1,0 +1,32 @@
+{
+  "benchmark_id": "conquer-benchmark-v1",
+  "version": "1.0.0",
+  "description": "Official 30-case human-calibrated evaluation benchmark for Conquer technical interview scoring (POST /api/interview/score).",
+  "case_count": 30,
+  "status": "FROZEN_PENDING_HUMAN_ANNOTATION",
+  "human_labels": "PENDING",
+  "categories": {
+    "DSA": 6,
+    "SYSTEM_DESIGN": 8,
+    "BACKEND": 6,
+    "FRONTEND": 4,
+    "BEHAVIORAL": 6
+  },
+  "bias_probes": {
+    "position": 30,
+    "verbosity": 5,
+    "hallucination": 4,
+    "near_tie": 7,
+    "alternative_architecture": 4,
+    "criterion_tradeoff": 4,
+    "subtle_regression": 3,
+    "edge_case_failure": 2,
+    "complexity_regression": 1,
+    "clearly_better": 4
+  },
+  "sha256": "aaf9f66360620603d0144796dcb954345a6d28d2b26e3a1d032c7b6cd4df9314",
+  "target_application": "Conquer (POST /api/interview/score)",
+  "calibration_target": "Cohen's kappa >= 0.60",
+  "production_ci_gating": "DISABLED",
+  "created_at": "2026-09-26T22:00:00Z"
+}

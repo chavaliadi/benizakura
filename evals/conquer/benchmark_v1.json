@@ -1,0 +1,1023 @@
+{
+  "benchmark_id": "conquer-benchmark-v1",
+  "version": "1.0.0",
+  "description": "Official 30-case human-calibrated evaluation benchmark for Conquer technical interview scoring (POST /api/interview/score).",
+  "created_at": "2026-09-26T22:00:00Z",
+  "status": "FROZEN_PENDING_HUMAN_ANNOTATION",
+  "human_labels": "PENDING",
+  "total_cases": 30,
+  "category_distribution": {
+    "DSA": 6,
+    "SYSTEM_DESIGN": 8,
+    "BACKEND": 6,
+    "FRONTEND": 4,
+    "BEHAVIORAL": 6
+  },
+  "cases": [
+    {
+      "case_id": "dsa-001",
+      "category": "DSA",
+      "subcategory": "Arrays & Two Pointers",
+      "difficulty": "medium",
+      "question": "Given a 1-indexed sorted array of integers numbers and an integer target, return indices of two numbers such that they add up to target. Can you solve it in O(N) time and O(1) space?",
+      "context": "Technical interview screening for software engineering candidates. Standard Two Sum on sorted array.",
+      "baseline_answer": "We initialize two pointers: left at index 0 and right at index len(numbers) - 1. Because the array is sorted, if numbers[left] + numbers[right] == target, we return [left + 1, right + 1]. If the sum is less than target, we increment left to increase the sum. If the sum is greater than target, we decrement right to decrease the sum. This guarantees finding the pair in a single pass with O(N) time complexity and O(1) auxiliary space.",
+      "candidate_answer": "We can solve this by running a nested loop over the array. The outer loop selects each index i, and the inner loop checks every subsequent index j > i to verify whether numbers[i] + numbers[j] == target. When a match is found, we return [i + 1, j + 1]. This guarantees finding the answer and uses O(1) extra space. However, this brute-force approach requires O(N^2) time complexity. Alternatively, we could store seen elements in a hash map for O(N) time, but that requires O(N) extra space.",
+      "human_annotation": {
+        "status": "PENDING",
+        "annotator_1": null,
+        "annotator_2": null,
+        "consensus": null
+      },
+      "bias_probes": ["position", "complexity_regression"],
+      "accepted_alternatives": [
+        {
+          "approach": "Two Pointers (left & right)",
+          "conditions": "Array is sorted; optimal O(N) time and O(1) auxiliary space.",
+          "tradeoffs": "Requires sorted input; directly achieves interview prompt constraints."
+        },
+        {
+          "approach": "Binary Search for complement",
+          "conditions": "For each element i, binary search for (target - numbers[i]) in remaining elements.",
+          "tradeoffs": "O(N log N) time, O(1) space; inferior to two-pointer O(N) but valid O(1) space."
+        }
+      ],
+      "metadata": {
+        "intended_signal": "candidate_regression",
+        "primary_failure_mode": "asymptotic_complexity_regression_from_O(N)_to_O(N^2)",
+        "complexity_baseline": "O(N) time, O(1) space",
+        "complexity_candidate": "O(N^2) time, O(1) space"
+      }
+    },
+    {
+      "case_id": "dsa-002",
+      "category": "DSA",
+      "subcategory": "Data Structures & Hash Tables",
+      "difficulty": "hard",
+      "question": "Design an LRU Cache with O(1) get and put operations. What data structures do you use, and how do you handle cache capacity eviction?",
+      "context": "Senior/mid-level systems data structure interview question probing composite structures.",
+      "baseline_answer": "LRU stands for Least Recently Used, which is a classic memory management and cache eviction algorithm widely used in computer architecture, operating systems, databases, and web application caching layers. In modern software engineering, caching is essential for improving latency and reducing load on primary datastores like PostgreSQL or MongoDB. To implement an LRU cache, you need to keep track of when items are accessed so that when the cache reaches capacity, the least recently used item can be identified and discarded. In languages like Python, dictionaries preserve insertion order, so you could technically use an OrderedDict or maintain a regular list of keys. Whenever an item is retrieved or updated, you move that key to the end of the list. However, if you use a regular list or array to track order, finding and removing a key from the middle of the list takes O(N) time because all subsequent elements must be shifted. Therefore, a doubly linked list is commonly cited in textbooks. It connects nodes with previous and next pointers. When paired with a hash table, you can look up items quickly. When the cache is full, you evict the oldest item. This ensures good cache hit ratios and maintains predictable performance.",
+      "candidate_answer": "We combine a Doubly Linked List (DLL) with a Hash Map (`key -> Node`). The DLL maintains access order (most recent at head, least recent at tail) using sentinel dummy `head` and `tail` nodes to eliminate null checks.\n\n- `get(key)`: Lookup key in hash map ($O(1)$). If missing, return -1. If found, detach the node (`node.prev.next = node.next; node.next.prev = node.prev`), insert it immediately after `head`, and return `node.value` ($O(1)$).\n- `put(key, val)`: If key exists in map, update value and move node to head ($O(1)$). If new, instantiate a node, insert after `head`, and add to map. If `size > capacity`, evict `tail.prev`, delete it from the map, and decrement size ($O(1)$).\n\nBoth operations are strictly $O(1)$ time and $O(capacity)$ space.",
+      "human_annotation": {
+        "status": "PENDING",
+        "annotator_1": null,
+        "annotator_2": null,
+        "consensus": null
+      },
+      "bias_probes": ["position", "verbosity"],
+      "accepted_alternatives": [
+        {
+          "approach": "Doubly Linked List + Hash Map",
+          "conditions": "Standard canonical implementation with sentinel nodes.",
+          "tradeoffs": "Strict O(1) get and put; requires careful pointer manipulation."
+        },
+        {
+          "approach": "LinkedHashMap / OrderedDict wrapper",
+          "conditions": "Acceptable in high-level language interviews if candidate explicitly explains underlying DLL + Hash Map mechanics.",
+          "tradeoffs": "Concise code but obscures low-level memory layout."
+        }
+      ],
+      "metadata": {
+        "intended_signal": "candidate_improvement",
+        "primary_failure_mode": "verbosity_bias_probe_candidate_is_concise_and_exact",
+        "complexity_baseline": "O(N) search or unspecified pointer mechanics in verbose text",
+        "complexity_candidate": "O(1) time get and put, O(capacity) space"
+      }
+    },
+    {
+      "case_id": "dsa-003",
+      "category": "DSA",
+      "subcategory": "Binary Trees",
+      "difficulty": "medium",
+      "question": "Find the Lowest Common Ancestor (LCA) of two given nodes p and q in a general binary tree (nodes do not contain parent pointers). Analyze time and space complexity.",
+      "context": "Standard algorithmic tree traversal interview question.",
+      "baseline_answer": "We use a recursive post-order DFS traversal. At each node:\n1. Base case: If the current node is None, or equals p, or equals q, return the current node.\n2. Recurse on left and right subtrees: `left = lca(node.left, p, q)` and `right = lca(node.right, p, q)`.\n3. If both left and right return non-null, it means p and q are in separate subtrees of current node, so current node is the LCA.\n4. If only one subtree returns non-null, return that non-null result.\nTime complexity is O(N) since we visit every node in the worst case. Auxiliary space is O(H) where H is tree height (O(log N) balanced, O(N) skewed) due to recursion call stack.",
+      "candidate_answer": "We can solve this iteratively by tracking parent pointers using a hash map and a DFS/BFS queue. Starting from root, we traverse the tree populating a dictionary `parent = {root: None}` until both p and q are discovered in the map. Once both are found, we extract all ancestors of p into a hash set by climbing from p up to root using the parent map (taking O(H) time). Then, we climb up from q using the parent map; the first node we encounter that already exists in p's ancestor set is the LCA. Time complexity is O(N) to traverse nodes, and space complexity is O(N) to store the parent dictionary and ancestor set.",
+      "human_annotation": {
+        "status": "PENDING",
+        "annotator_1": null,
+        "annotator_2": null,
+        "consensus": null
+      },
+      "bias_probes": ["position", "alternative_architecture", "near_tie"],
+      "accepted_alternatives": [
+        {
+          "approach": "Recursive Post-order DFS",
+          "conditions": "Standard tree structure; stack depth acceptable.",
+          "tradeoffs": "O(N) time, O(H) stack space; concise and elegant."
+        },
+        {
+          "approach": "Iterative with Parent Map and Ancestor Set",
+          "conditions": "Large trees where recursion depth might trigger call stack overflow.",
+          "tradeoffs": "O(N) time, O(N) heap space; avoids recursion depth limits at the cost of higher memory."
+        }
+      ],
+      "metadata": {
+        "intended_signal": "near_tie",
+        "primary_failure_mode": "valid_alternative_architectures_near_tie",
+        "complexity_baseline": "O(N) time, O(H) space",
+        "complexity_candidate": "O(N) time, O(N) space"
+      }
+    },
+    {
+      "case_id": "dsa-004",
+      "category": "DSA",
+      "subcategory": "Heaps & Selection",
+      "difficulty": "medium",
+      "question": "Given an unsorted integer array, return the k most frequent elements. Can you do better than O(N log N) sorting?",
+      "context": "Testing selection algorithms, frequency hashing, heaps, and bucket sort.",
+      "baseline_answer": "First, we count element frequencies using a hash map in O(N) time. Next, we push frequency-element pairs into a min-heap of maximum size k. For each of the M unique elements, we push into the min-heap; if heap size exceeds k, we pop the smallest frequency element in O(log k) time. After inspecting all elements, the min-heap contains the k most frequent elements. Overall time complexity is O(N + M log k) which is O(N log k), strictly faster than O(N log N) when k << N. Space complexity is O(N) for the frequency map plus O(k) for the heap.",
+      "candidate_answer": "First, count frequencies using a hash map in O(N) time. Next, use Bucket Sort: allocate an array of buckets of size N + 1 where index i represents frequency i (since an element can appear at most N times). Append each unique number to `buckets[frequency]`. Finally, iterate backwards through the buckets from index N down to 1, gathering elements into the result list until k elements are collected. This achieves optimal O(N) linear time complexity and O(N) auxiliary space, outperforming the heap approach when k is proportional to N.",
+      "human_annotation": {
+        "status": "PENDING",
+        "annotator_1": null,
+        "annotator_2": null,
+        "consensus": null
+      },
+      "bias_probes": ["position", "criterion_tradeoff"],
+      "accepted_alternatives": [
+        {
+          "approach": "Min-Heap of size k",
+          "conditions": "Streaming data or when k is much smaller than N.",
+          "tradeoffs": "O(N log k) time, O(N + k) space; very memory efficient when k is small."
+        },
+        {
+          "approach": "Bucket Sort by frequency",
+          "conditions": "Bounded maximum frequency (N); batch memory available.",
+          "tradeoffs": "O(N) linear time, O(N) space; optimal asymptotic time complexity."
+        },
+        {
+          "approach": "Quickselect on unique elements",
+          "conditions": "In-place selection preferred.",
+          "tradeoffs": "O(N) average time, O(N^2) worst case, O(N) space."
+        }
+      ],
+      "metadata": {
+        "intended_signal": "candidate_improvement",
+        "primary_failure_mode": "asymptotic_time_complexity_optimization_from_O(NlogK)_to_O(N)",
+        "complexity_baseline": "O(N log k) time, O(N + k) space",
+        "complexity_candidate": "O(N) time, O(N) space"
+      }
+    },
+    {
+      "case_id": "dsa-005",
+      "category": "DSA",
+      "subcategory": "Graphs & Topological Sort",
+      "difficulty": "medium",
+      "question": "How do you detect whether a directed graph contains a cycle? Explain your algorithm and data structures.",
+      "context": "Testing graph theory, distinguishing directed cycle detection from undirected graph traversal.",
+      "baseline_answer": "In a directed graph, a simple visited boolean array is insufficient because cross-edges to previously visited nodes do not necessarily constitute a cycle. We must use DFS with 3-state vertex coloring:\n- 0 (WHITE / UNVISITED): Node has not been processed.\n- 1 (GRAY / VISITING): Node is currently in the active recursion call stack.\n- 2 (BLACK / VISITED): Node and all its descendants have been fully explored.\n\nWe iterate through all vertices to handle disconnected components. For each unvisited vertex, we run DFS. If we encounter an adjacent vertex currently marked GRAY (state 1), we have detected a back-edge, proving a directed cycle exists. If it is BLACK, we skip it. Time complexity is O(V + E) and space complexity is O(V) for the color state array and recursion call stack.",
+      "candidate_answer": "To detect a cycle in a directed graph, we can perform standard Breadth-First Search (BFS) using a queue and a `visited` boolean set. We start at vertex 0 and add it to the queue and the visited set. While the queue is not empty, we dequeue a vertex and inspect all its directed outgoing neighbors. For each neighbor, if that neighbor already exists in the `visited` set, it means we have reached an already seen node, which proves a cycle exists, so we immediately return true. If not visited, we add it to the visited set and push to queue. If BFS finishes without encountering an already-visited node, the directed graph is acyclic. Time complexity is O(V + E) and space complexity is O(V).",
+      "human_annotation": {
+        "status": "PENDING",
+        "annotator_1": null,
+        "annotator_2": null,
+        "consensus": null
+      },
+      "bias_probes": ["position", "hallucination"],
+      "accepted_alternatives": [
+        {
+          "approach": "DFS with 3-state coloring (White/Gray/Black)",
+          "conditions": "Standard recursive or iterative DFS directed cycle detection.",
+          "tradeoffs": "O(V + E) time, O(V) space; detects back-edges accurately."
+        },
+        {
+          "approach": "Kahn's Algorithm (Topological Sort BFS)",
+          "conditions": "Computes in-degrees for all vertices; enqueues 0 in-degree nodes.",
+          "tradeoffs": "O(V + E) time, O(V) space; if processed node count < V, cycle exists."
+        }
+      ],
+      "metadata": {
+        "intended_signal": "candidate_regression",
+        "primary_failure_mode": "authoritative_hallucination_confusing_undirected_cycle_detection_with_directed_graph",
+        "complexity_baseline": "O(V + E) time, O(V) space",
+        "complexity_candidate": "Factually incorrect algorithm (false positives on DAG diamond patterns)"
+      }
+    },
+    {
+      "case_id": "dsa-006",
+      "category": "DSA",
+      "subcategory": "Intervals & Sorting",
+      "difficulty": "medium",
+      "question": "Given an array of meeting time intervals where intervals[i] = [start_i, end_i], merge all overlapping intervals and return an array of the non-overlapping intervals.",
+      "context": "Testing interval boundary conditions, edge cases, and sorting.",
+      "baseline_answer": "First, we handle the empty input edge case. Then, we sort the intervals in ascending order based on their start times: `intervals.sort(key=lambda x: x[0])` in O(N log N) time. We initialize `merged = [intervals[0]]`. We iterate through the remaining intervals starting from index 1. For each interval `[curr_start, curr_end]`, we compare it with the last interval in `merged`: `[last_start, last_end]`. If `curr_start <= last_end`, they overlap or touch (e.g. [1, 4] and [4, 5]), so we merge them by setting `merged[-1][1] = max(last_end, curr_end)`. If `curr_start > last_end`, there is no overlap, so we append `[curr_start, curr_end]` to `merged`. Time complexity is O(N log N) due to sorting, and auxiliary space is O(N) to store the merged result.",
+      "candidate_answer": "We sort intervals by their start time. Then we initialize `result = [intervals[0]]` and loop through each interval from index 1. For each interval, we check `if intervals[i][0] < result[-1][1]: result[-1][1] = intervals[i][1]` else we append `result.append(intervals[i])`. This checks if the start of the current interval is strictly less than the end of the previous interval and merges them. Time complexity is O(N log N) for sorting and O(N) space for the result.",
+      "human_annotation": {
+        "status": "PENDING",
+        "annotator_1": null,
+        "annotator_2": null,
+        "consensus": null
+      },
+      "bias_probes": ["position", "edge_case_failure"],
+      "accepted_alternatives": [
+        {
+          "approach": "Sort by start time + single-pass merge",
+          "conditions": "Standard optimal approach; must handle touching boundaries (start == end) and subsumption.",
+          "tradeoffs": "O(N log N) time, O(N) space."
+        }
+      ],
+      "metadata": {
+        "intended_signal": "candidate_regression",
+        "primary_failure_mode": "boundary_condition_failure_strict_inequality_and_missing_max_end",
+        "complexity_baseline": "O(N log N) time, O(N) space",
+        "complexity_candidate": "O(N log N) time, O(N) space (with two critical logic bugs on touching & subsumed intervals)"
+      }
+    },
+    {
+      "case_id": "sys-001",
+      "category": "SYSTEM_DESIGN",
+      "subcategory": "Distributed ID Generation & URL Shortener",
+      "difficulty": "medium",
+      "question": "Design a globally unique ID generation mechanism for a high-scale URL shortener (TinyURL) handling 10,000 writes/second. How do you prevent collisions and keep IDs compact?",
+      "context": "System design interview question testing distributed coordination, ID generation, and encoding.",
+      "baseline_answer": "We use a dedicated distributed Key Generation Service (KGS). The KGS pre-generates 64-bit random integers and encodes them into Base62 strings (using [0-9a-zA-Z], yielding 62^7 ≈ 3.5 trillion unique 7-character URLs). To ensure zero collisions and eliminate database synchronization bottlenecks under 10k writes/sec, the KGS loads batches of pre-generated IDs into memory on multiple KGS worker nodes (e.g. Node 1 reserves IDs 1M–2M, Node 2 reserves 2M–3M). When a worker node crashes, unused reserved IDs in that range are simply dropped (acceptable given the 3.5T space). Application servers request IDs from KGS via local RPC in sub-millisecond time. Database writes use `id` as the primary key with an asynchronous cache write to Redis.",
+      "candidate_answer": "We generate unique IDs using Twitter Snowflake architecture. Each 64-bit ID comprises: 1 unused sign bit, 41 timestamp bits (giving 69 years of millisecond precision), 10 worker machine ID bits (supporting 1,024 independent worker nodes across datacenters), and 12 sequence counter bits (allowing 4,096 IDs per millisecond per node, totaling 4M IDs/sec per node, easily satisfying 10k writes/sec). Each worker generates IDs locally with zero inter-node network coordination or locks. We then encode the 64-bit integer into Base62 for compact 7–8 character short URLs. URLs are stored in a distributed key-value store (e.g. Cassandra or DynamoDB) partitioned by the generated short key.",
+      "human_annotation": {
+        "status": "PENDING",
+        "annotator_1": null,
+        "annotator_2": null,
+        "consensus": null
+      },
+      "bias_probes": ["position", "alternative_architecture", "near_tie"],
+      "accepted_alternatives": [
+        {
+          "approach": "Pre-generated Range KGS (Key Generation Service)",
+          "conditions": "Centralized ID allocation with range reservations.",
+          "tradeoffs": "Zero runtime collision check; simple; unused ranges lost on worker crash."
+        },
+        {
+          "approach": "Twitter Snowflake Distributed Generator",
+          "conditions": "Distributed generation without central coordination.",
+          "tradeoffs": "Locally generated 64-bit IDs; time-ordered; requires NTP clock drift safeguards."
+        },
+        {
+          "approach": "Cryptographic Hash (MD5/SHA-256) truncated to 7 chars with collision retry",
+          "conditions": "Deterministic generation from long URL.",
+          "tradeoffs": "Requires database unique index and collision check/retry overhead under high concurrency."
+        }
+      ],
+      "metadata": {
+        "intended_signal": "near_tie",
+        "primary_failure_mode": "valid_alternative_architectures_near_tie",
+        "complexity_baseline": "Pre-generated range allocation in memory",
+        "complexity_candidate": "Snowflake 64-bit distributed coordination-free generator"
+      }
+    },
+    {
+      "case_id": "sys-002",
+      "category": "SYSTEM_DESIGN",
+      "subcategory": "API Gateway & Rate Limiting",
+      "difficulty": "medium",
+      "question": "Design a distributed rate limiter for an API Gateway enforcing a limit of 100 requests per minute per IP across a cluster of 50 gateway nodes.",
+      "context": "Testing distributed race conditions, atomic operations, and rate limiting algorithms.",
+      "baseline_answer": "To enforce rate limits across 50 stateless gateway nodes without cross-node synchronization overhead, we store counters in a shared Redis cluster using an atomic Token Bucket or Sliding Window Log via Redis Lua scripts.\n\nUsing a Redis Lua script is critical: it executes atomically on the Redis single-threaded shard, eliminating race conditions between reading and updating counters. The script stores a sorted set of timestamps `ZSET` per IP: `ZREMRANGEBYSCORE key 0 (now - 60s)` removes requests older than 1 minute, `ZCARD key` counts current requests. If count < 100, `ZADD key now now` records the request, sets an expiration TTL of 60 seconds, and returns allowed=1. If count >= 100, returns allowed=0. This guarantees strict accuracy and prevents race conditions under concurrent requests.",
+      "candidate_answer": "We store rate limit counters in Redis. For each incoming request, the gateway node inspects the client's IP. The node executes `GET rate_limit:{ip}` from Redis. If the key exists and the value is greater than or equal to 100, the gateway rejects the request with HTTP 429 Too Many Requests. If the key does not exist, the gateway calls `SET rate_limit:{ip} 1 EX 60`. If the key exists and value is under 100, the gateway calls `INCR rate_limit:{ip}` and forwards the request to the upstream service. This distributes rate limiting evenly across all 50 gateway nodes.",
+      "human_annotation": {
+        "status": "PENDING",
+        "annotator_1": null,
+        "annotator_2": null,
+        "consensus": null
+      },
+      "bias_probes": ["position", "subtle_regression"],
+      "accepted_alternatives": [
+        {
+          "approach": "Atomic Redis Lua Script with Sliding Window / Token Bucket",
+          "conditions": "Distributed stateless gateways sharing Redis.",
+          "tradeoffs": "Atomically eliminates race conditions; accurate; requires memory management."
+        },
+        {
+          "approach": "Generic Cell Rate Algorithm (GCRA) / Redis Cell",
+          "conditions": "Leaky bucket implementation with single key.",
+          "tradeoffs": "Low memory overhead; strict smoothness; atomic."
+        }
+      ],
+      "metadata": {
+        "intended_signal": "candidate_regression",
+        "primary_failure_mode": "race_condition_check_then_act_anti_pattern_in_distributed_system",
+        "complexity_baseline": "Atomic Lua script execution on Redis",
+        "complexity_candidate": "Non-atomic GET then INCR/SET susceptible to concurrency race conditions"
+      }
+    },
+    {
+      "case_id": "sys-003",
+      "category": "SYSTEM_DESIGN",
+      "subcategory": "Real-time Notifications",
+      "difficulty": "hard",
+      "question": "Design a real-time notification infrastructure supporting 10 million daily active users with both in-app instant notifications and mobile push notifications.",
+      "context": "Testing architectural trade-offs between connection persistence, operational complexity, and battery/network efficiency.",
+      "baseline_answer": "We employ a tiered hybrid architecture separating active in-app delivery from background mobile delivery:\n1. In-App Real-time: Persistent bidirectional WebSockets or Server-Sent Events (SSE) managed by a horizontally scalable Gateway Cluster. A Redis Pub/Sub or Kafka topic partitions notifications by `user_id`. When a user opens the app, they establish a connection to a gateway node, which registers `user_id -> node_id` in a distributed connection registry. Online users receive instant in-app alerts with sub-50ms latency.\n2. Mobile Background: For offline users or mobile devices with screen off, maintaining persistent WebSockets drains battery and violates OS restrictions. We route background notifications through an asynchronous worker queue (Kafka -> Worker) that batches requests to APNs (Apple) and FCM (Google).\nThis balances low-latency real-time delivery with operational cost and mobile OS constraints.",
+      "candidate_answer": "We design the entire notification system around persistent WebSockets. We maintain a cluster of WebSocket servers. Every user device (both web browsers and mobile apps) maintains an active, long-lived WebSocket connection to our servers 24/7. When any notification event occurs in our backend services, the notification service directly writes the message to the user's open WebSocket connection. If the connection is broken, the mobile app continually attempts reconnection with exponential backoff. This ensures a unified communication protocol across all platforms without needing third-party services like Apple APNs or Google FCM.",
+      "human_annotation": {
+        "status": "PENDING",
+        "annotator_1": null,
+        "annotator_2": null,
+        "consensus": null
+      },
+      "bias_probes": ["position", "criterion_tradeoff"],
+      "accepted_alternatives": [
+        {
+          "approach": "Hybrid WebSockets/SSE for in-app + APNs/FCM for mobile background",
+          "conditions": "Production-grade standard for mobile and web apps.",
+          "tradeoffs": "Respects mobile OS background execution limits; low battery drain; highly reliable."
+        },
+        {
+          "approach": "Short/Long Polling for web + APNs/FCM for mobile",
+          "conditions": "Low-frequency notification workloads.",
+          "tradeoffs": "Stateless infrastructure; higher HTTP request volume; simple."
+        }
+      ],
+      "metadata": {
+        "intended_signal": "candidate_regression",
+        "primary_failure_mode": "architectural_infeasibility_ignoring_mobile_os_background_execution_limits_and_apns_fcm",
+        "complexity_baseline": "Tiered WebSocket gateway + APNs/FCM worker queues",
+        "complexity_candidate": "24/7 persistent WebSocket on mobile (fails in real-world iOS/Android background)"
+      }
+    },
+    {
+      "case_id": "sys-004",
+      "category": "SYSTEM_DESIGN",
+      "subcategory": "Distributed Datastores & Consistency",
+      "difficulty": "hard",
+      "question": "Explain Tunable Consistency in a distributed Dynamo-style key-value store (N, W, R). How do you configure it for strong consistency vs high availability, and how does Read Repair work?",
+      "context": "Testing deep understanding of distributed consensus, quorum mathematics, and entropy repair.",
+      "baseline_answer": "In Dynamo-style distributed datastores (e.g. Cassandra, Riak), data is replicated across N nodes. Consistency is governed by write quorum W and read quorum R:\n- Strong Consistency (Linearizable Read-Your-Writes): Ensured when `W + R > N`. The pigeonhole principle guarantees that the read set and write set overlap by at least one replica node holding the latest version (identified via Lamport timestamps or vector clocks).\n- High Write Availability: Configure `W = 1, R = 1` or `W = 1, R = N`. Writes succeed as long as a single replica acknowledges, maximizing write availability at the cost of eventual consistency.\n- Read Repair: When a client reads with R > 1, the coordinator contacts R replicas. If it detects a version discrepancy among the responses, it returns the newest version to the client immediately and sends asynchronous background writes to update the stale replicas. Background anti-entropy with Merkle trees handles replicas that were offline during reads.",
+      "candidate_answer": "Dynamo-style systems allow tuning consistency using three parameters: N (replication factor), W (number of replicas that must acknowledge a write before returning success), and R (number of replicas queried during a read).\n\n1. Strong Consistency: We configure `W + R > N` (e.g. for N=3, we choose W=2 and R=2, known as Quorum). Because W+R exceeds N, the read set and write set must intersect at least one node containing the latest update. The coordinator compares timestamps, resolves conflicts, and returns the freshest data.\n2. Availability Focus: We configure `W=1` and `R=1`. This provides lowest latency and highest availability: writes and reads succeed even if N-1 nodes are partitioned, though stale reads can occur.\n3. Read Repair: When a read queries multiple replicas (R > 1) and discovers that replica A has timestamp T2 while replica B has timestamp T1 (T2 > T1), the coordinator serves T2 to the caller and fires a background write to update replica B to T2. Merkle trees provide scheduled anti-entropy repair for dormant keys.",
+      "human_annotation": {
+        "status": "PENDING",
+        "annotator_1": null,
+        "annotator_2": null,
+        "consensus": null
+      },
+      "bias_probes": ["position", "near_tie"],
+      "accepted_alternatives": [
+        {
+          "approach": "Quorum intersection W + R > N",
+          "conditions": "Standard Dynamo-paper tunable consistency analysis.",
+          "tradeoffs": "Balanced latency and consistency; tunable per-request."
+        }
+      ],
+      "metadata": {
+        "intended_signal": "near_tie",
+        "primary_failure_mode": "near_tie_both_answers_are_technically_rigorous_and_equivalent",
+        "complexity_baseline": "W + R > N quorum mechanics and read repair",
+        "complexity_candidate": "W + R > N quorum mechanics and read repair"
+      }
+    },
+    {
+      "case_id": "sys-005",
+      "category": "SYSTEM_DESIGN",
+      "subcategory": "Social Media Feed Architecture",
+      "difficulty": "hard",
+      "question": "How would you design the news feed generation architecture for a platform like Twitter/X? Compare Fan-out on Write vs Fan-out on Read and handle the celebrity problem.",
+      "context": "Classic high-scale system design question testing push vs pull feed generation and write amplification.",
+      "baseline_answer": "We evaluate two primary feed generation paradigms:\n1. Fan-out on Write (Push Model): When user A posts, a background worker pushes the tweet ID into the timeline cache (Redis ZSET) of all of A's followers. Reads are O(1) instantaneous timeline retrieval. However, for 'celebrities' (users with 50M+ followers), a single tweet triggers 50 million Redis writes, causing massive write amplification, queue backpressure, and resource exhaustion.\n2. Fan-out on Read (Pull Model): Tweets are only written to the author's post table. When a follower loads their feed, the system queries the latest tweets of all followed users and merges them. This keeps writes O(1), but reads become computationally expensive (merging hundreds of timelines).\n\nOptimal Solution (Hybrid Model): For standard users (<25k followers), use Fan-out on Write. For celebrities (>25k followers), do not fan out. When a follower loads their feed, fetch their pre-computed Redis timeline and dynamically merge tweets from the celebrities they follow. This prevents write amplification while keeping read latency low.",
+      "candidate_answer": "We use Fan-out on Write for the entire feed architecture. When any user publishes a tweet, an asynchronous message queue triggers workers that immediately push the tweet into the timeline inbox of every single follower in Redis. This makes read operations O(1) fast for all users. For celebrity users who have tens of millions of followers, Fan-out on Write remains the best architecture because modern distributed Redis clusters and Kafka partitions can easily scale horizontally to process 50 million writes in a few seconds. Trying to merge feeds on read would introduce complex database joins and high p99 latency for end users, so pushing to all followers uniformly is the standard design.",
+      "human_annotation": {
+        "status": "PENDING",
+        "annotator_1": null,
+        "annotator_2": null,
+        "consensus": null
+      },
+      "bias_probes": ["position", "hallucination"],
+      "accepted_alternatives": [
+        {
+          "approach": "Hybrid Push/Pull Model",
+          "conditions": "Industry standard (Twitter/X, Instagram); push for normal users, pull/merge for celebrities.",
+          "tradeoffs": "Eliminates write amplification on high-follower accounts; maintains low read latency."
+        },
+        {
+          "approach": "Pure Pull Model with Aggressive Materialized Caching",
+          "conditions": "Workloads where write volume dominates read volume.",
+          "tradeoffs": "Zero write amplification; higher compute cost on read."
+        }
+      ],
+      "metadata": {
+        "intended_signal": "candidate_regression",
+        "primary_failure_mode": "authoritative_hallucination_dismissing_celebrity_write_amplification_bottleneck",
+        "complexity_baseline": "Hybrid push/pull model balancing write amplification and read latency",
+        "complexity_candidate": "Pure push model asserting 50M writes per celebrity post is negligible"
+      }
+    },
+    {
+      "case_id": "sys-006",
+      "category": "SYSTEM_DESIGN",
+      "subcategory": "Caching & High Concurrency",
+      "difficulty": "medium",
+      "question": "What is Cache Stampede (Thundering Herd), and how do you mitigate it when a hot cache key expires under 50,000 requests/second?",
+      "context": "Testing cache invalidation strategies and concurrency mitigation.",
+      "baseline_answer": "Caching is one of the most critical optimization techniques in high-throughput distributed systems. When applications scale to millions of users, querying the primary SQL database or microservice for every incoming HTTP request causes severe latency degradation and can exhaust database connection pools. To solve this, engineers deploy distributed in-memory caches like Redis or Memcached in front of the database. A common problem that occurs in production is cache stampede, also referred to as the thundering herd problem. This happens when a key expires, and because there is a lot of traffic, many requests miss the cache at the same time and hit the database at once. Databases can only handle so many simultaneous connections before they crash or experience lock contention. There are several ways to address this. You can add more cache servers, increase memory, or increase database CPU. You can also use caching proxies and ensure that keys have reasonable expiration times. In addition, developers can implement locking so that only one process runs at a time. By carefully monitoring cache hit ratios and setting up alerts, companies can maintain high availability and prevent cascade failures during traffic spikes.",
+      "candidate_answer": "Cache Stampede occurs when a high-traffic key expires, causing thousands of concurrent requests to simultaneously experience cache misses and overwhelm the primary database with identical queries.\n\nMitigation Strategies:\n1. Mutex / Distributed Lock (Singleflight): On a cache miss, the first worker acquires a short-lived lock (e.g. Redis `SET key:lock token NX EX 5`). Only the lock holder queries the database and repopulates the cache; all other requests wait or retry with backoff.\n2. Probabilistic Early Expiration (XFetch Algorithm): Workers compute a probabilistic threshold `delta * beta * ln(rand())`. As the key approaches expiration, the probability of background recomputation increases before the key actually expires, ensuring the cache is refreshed seamlessly without downtime.\n3. Background Refresh with Soft TTL: Store data with a soft TTL (5 mins) and hard TTL (10 mins). When soft TTL passes, serve stale data immediately while an asynchronous worker refreshes the cache.",
+      "human_annotation": {
+        "status": "PENDING",
+        "annotator_1": null,
+        "annotator_2": null,
+        "consensus": null
+      },
+      "bias_probes": ["position", "verbosity"],
+      "accepted_alternatives": [
+        {
+          "approach": "Distributed Mutex / Singleflight",
+          "conditions": "Strict consistency needed; callers can wait briefly for cache repopulation.",
+          "tradeoffs": "Only 1 DB query executed; minimal extra latency for waiting requests."
+        },
+        {
+          "approach": "Probabilistic Early Expiration (XFetch)",
+          "conditions": "High read-heavy keys where pre-computation is cheap.",
+          "tradeoffs": "Optimal background refresh; mathematically proven; zero user-facing latency spikes."
+        },
+        {
+          "approach": "Soft TTL + Background Asynchronous Revalidation",
+          "conditions": "Stale-while-revalidate acceptable.",
+          "tradeoffs": "Fastest response time; small window of stale data."
+        }
+      ],
+      "metadata": {
+        "intended_signal": "candidate_improvement",
+        "primary_failure_mode": "verbosity_bias_probe_candidate_is_concise_and_technically_concrete",
+        "complexity_baseline": "Verbose generalities without technical mechanisms",
+        "complexity_candidate": "Precise algorithms: Singleflight mutex, XFetch, soft TTL"
+      }
+    },
+    {
+      "case_id": "sys-007",
+      "category": "SYSTEM_DESIGN",
+      "subcategory": "CDN & Video Streaming",
+      "difficulty": "hard",
+      "question": "Design the video delivery and caching architecture for a global on-demand video streaming platform (e.g. Netflix/YouTube). How do you handle variable client network bandwidth and edge caching?",
+      "context": "Testing video chunking protocols, adaptive bitrate streaming, and CDN origin shielding.",
+      "baseline_answer": "We store video files in Amazon S3 and put a Content Delivery Network (CDN) like Cloudflare or CloudFront in front of S3. When users click play, their client device requests the video URL. The CDN edge server checks if the video file is cached locally. If cached, it streams the video directly to the user. If not cached, the CDN pulls the video from S3, caches it, and serves it. For video encoding, we convert videos to MP4 format with standard compression. To handle different devices, we provide high, medium, and low quality video links on the page so users can select their preferred resolution.",
+      "candidate_answer": "We implement an Adaptive Bitrate Streaming (ABR) architecture using HLS and MPEG-DASH protocols with a multi-tiered CDN topology:\n\n1. Video Ingestion & Chunking: Source videos are transcoded into multiple discrete bitrate/resolution profiles (e.g. 1080p, 720p, 480p) using H.264/AV1 codecs and sliced into fixed 2-to-6 second media segments (`.m4s`/`.ts`), accompanied by a master playlist (`.m3u8` / `.mpd`).\n2. Dynamic Client Adaptation: The client media player monitors buffer health and bandwidth throughput per chunk. It dynamically requests subsequent chunks from higher or lower bitrate profiles using HTTP byte-range requests without stream interruption.\n3. Tiered Caching & Origin Shielding: Edge CDN nodes cache popular chunks closest to users. Mid-tier regional caches ('Origin Shields') consolidate cache misses, preventing thundering herds from overwhelming storage origins (S3). Master manifests have short TTLs (seconds for live, minutes for VOD), while immutable video chunks are cached with long TTLs (30+ days).",
+      "human_annotation": {
+        "status": "PENDING",
+        "annotator_1": null,
+        "annotator_2": null,
+        "consensus": null
+      },
+      "bias_probes": ["position", "clearly_better"],
+      "accepted_alternatives": [
+        {
+          "approach": "Adaptive Bitrate Streaming (HLS / MPEG-DASH) + Tiered CDN",
+          "conditions": "Modern production standard for global video delivery.",
+          "tradeoffs": "Seamless quality adaptation; byte-range caching; requires transcoding pipeline."
+        }
+      ],
+      "metadata": {
+        "intended_signal": "candidate_improvement",
+        "primary_failure_mode": "candidate_substantively_superior_concrete_protocols_vs_simplistic_mp4_download",
+        "complexity_baseline": "Monolithic MP4 download from CDN",
+        "complexity_candidate": "ABR chunking (HLS/DASH), dynamic bandwidth adaptation, and tiered origin shielding"
+      }
+    },
+    {
+      "case_id": "sys-008",
+      "category": "SYSTEM_DESIGN",
+      "subcategory": "Payment Systems & Distributed Transactions",
+      "difficulty": "hard",
+      "question": "Design an idempotent payment processing service that communicates with an external payment gateway (e.g. Stripe). How do you prevent double-charging when network timeouts occur?",
+      "context": "Testing financial consistency, idempotency keys, state machines, and reconciliation.",
+      "baseline_answer": "To prevent double-charging, we implement client-generated Idempotency Keys and an atomic state machine in our database:\n1. Idempotency Key: The client generates a unique UUID `idempotency_key` per checkout attempt and passes it in the `POST /api/payments` header.\n2. Deduplication Store: Our payment service performs an atomic insert into an `idempotency_records` table with a unique constraint on `idempotency_key`. If a duplicate request arrives while the first is processing, it returns HTTP 409 or polls until completion.\n3. External Gateway Idempotency: When calling Stripe, our payment service forwards the same `idempotency_key` in the gateway API request. If a network timeout occurs between our service and Stripe, our retry worker safely retries the request with the identical key; Stripe recognizes the key and returns the existing transaction result without re-charging.\n4. Async Reconciliation: A nightly batch job reconciles our payment ledger against external gateway settlement files to catch edge-case discrepancies.",
+      "candidate_answer": "To prevent double-charging across microservices, we implement a Two-Phase Commit (2PC) protocol coordinated by a transaction manager. When a user submits payment, the coordinator sends a PREPARE message to the Order Service, Inventory Service, and Payment Service. If all services reply READY, the coordinator issues a COMMIT message to charge the user. If the network times out during payment processing, the coordinator automatically issues a ROLLBACK message to cancel the order and prompt the user to try again.",
+      "human_annotation": {
+        "status": "PENDING",
+        "annotator_1": null,
+        "annotator_2": null,
+        "consensus": null
+      },
+      "bias_probes": ["position", "edge_case_failure"],
+      "accepted_alternatives": [
+        {
+          "approach": "Idempotency Keys + State Machine + Gateway Token Forwarding",
+          "conditions": "Standard architectural pattern for third-party payment integrations.",
+          "tradeoffs": "Completely prevents double-billing; handles network partition gracefully."
+        },
+        {
+          "approach": "Saga Pattern with Compensating Transactions",
+          "conditions": "Distributed microservice workflows without locking.",
+          "tradeoffs": "Eventually consistent; requires idempotent compensation endpoints."
+        }
+      ],
+      "metadata": {
+        "intended_signal": "candidate_regression",
+        "primary_failure_mode": "architectural_misapplication_2PC_cannot_span_external_third_party_http_gateways",
+        "complexity_baseline": "Idempotency keys, state machines, and third-party gateway key forwarding",
+        "complexity_candidate": "Two-Phase Commit (impossible over external non-2PC third-party APIs like Stripe)"
+      }
+    },
+    {
+      "case_id": "backend-001",
+      "category": "BACKEND",
+      "subcategory": "Databases & Concurrency Control",
+      "difficulty": "medium",
+      "question": "Explain the difference between Read Committed and Repeatable Read isolation levels in relational databases. What concurrency anomalies does each prevent?",
+      "context": "Testing core database transaction isolation levels and concurrency anomalies.",
+      "baseline_answer": "1. Read Committed: Prevents Dirty Reads (reading uncommitted writes from another transaction). However, it permits Non-Repeatable Reads (reading row X, then another transaction commits an update to X, and re-reading X returns new values) and Phantom Reads (new rows matching a WHERE range filter appear upon re-query). In MVCC (PostgreSQL/MySQL InnoDB), each statement in Read Committed sees a snapshot taken at statement start.\n2. Repeatable Read: Prevents both Dirty Reads and Non-Repeatable Reads. Under MVCC, a single consistent transaction snapshot is established at the start of the first query in the transaction; all subsequent reads within the transaction read from that exact snapshot, guaranteeing that re-reading row X produces identical values throughout the transaction. (In PostgreSQL, Repeatable Read also prevents Phantom Reads; in MySQL InnoDB, next-key gap locks prevent phantoms).",
+      "candidate_answer": "Read Committed prevents Dirty Reads by acquiring shared read locks on accessed rows and holding those shared locks until the transaction commits, ensuring no other transaction can update the rows while reading. Repeatable Read goes one step further: it prevents Dirty Reads, Non-Repeatable Reads, and Phantom Reads by locking the entire database table with an exclusive table lock so that no concurrent inserts or updates can take place until the transaction completes.",
+      "human_annotation": {
+        "status": "PENDING",
+        "annotator_1": null,
+        "annotator_2": null,
+        "consensus": null
+      },
+      "bias_probes": ["position", "subtle_regression"],
+      "accepted_alternatives": [
+        {
+          "approach": "MVCC Snapshot Explanation (PostgreSQL / MySQL InnoDB)",
+          "conditions": "Standard modern relational database behavior.",
+          "tradeoffs": "Accurately explains statement-level vs transaction-level snapshot isolation."
+        },
+        {
+          "approach": "ANSI SQL 2PL Locking Explanation",
+          "conditions": "Theoretical two-phase locking model.",
+          "tradeoffs": "Must note that Read Committed releases S locks immediately after statement, NOT at commit."
+        }
+      ],
+      "metadata": {
+        "intended_signal": "candidate_regression",
+        "primary_failure_mode": "factually_incorrect_database_locking_mechanics_and_table_lock_claims",
+        "complexity_baseline": "Accurate MVCC snapshot distinction across Read Committed and Repeatable Read",
+        "complexity_candidate": "Factually incorrect claims: Read Committed holding S locks to commit, Repeatable Read locking entire table"
+      }
+    },
+    {
+      "case_id": "backend-002",
+      "category": "BACKEND",
+      "subcategory": "Database Indexing & Query Optimization",
+      "difficulty": "medium",
+      "question": "Given a PostgreSQL table with 20 million rows, how do you design a composite B-tree index for a query with WHERE tenant_id = ? AND status = ? AND created_at >= ? ORDER BY created_at DESC?",
+      "context": "Testing B-tree leftmost prefix rules, equality vs range column ordering, and sort elimination.",
+      "baseline_answer": "To optimize database queries on large tables, you should create indexes on the columns present in the WHERE clause. Indexes speed up lookups from O(N) sequential scans to O(log N) tree searches. You can create an index on `created_at` because it is used for ordering and date filtering, or you can create three separate indexes: one on `tenant_id`, one on `status`, and one on `created_at`. PostgreSQL's query planner will use Bitmap Index Scans to combine these individual indexes. Additionally, you should run `ANALYZE` regularly so the query optimizer knows the table statistics.",
+      "candidate_answer": "We should create a single composite B-tree index with column ordering: `(tenant_id, status, created_at DESC)`.\n\nReasoning (Leftmost Prefix & Range Termination Rule):\n1. Equality Columns First: `tenant_id` and `status` are exact equality filters (`=`). Placing them as the leading columns narrows the B-tree traversal down to a contiguous index segment.\n2. Range Filter Last: B-tree index navigation can only perform range scans (`>=`) on the final indexed dimension. Once a range comparison is applied to a column, subsequent columns in the composite index cannot be used for binary index search.\n3. Sort Elimination: Because `created_at` is the final column in the composite index and is sorted in the requested order, the query executor can read the index in index-scan order, completely eliminating an expensive in-memory or on-disk `Sort` step (zero `Sort Method: external merge`).",
+      "human_annotation": {
+        "status": "PENDING",
+        "annotator_1": null,
+        "annotator_2": null,
+        "consensus": null
+      },
+      "bias_probes": ["position", "clearly_better"],
+      "accepted_alternatives": [
+        {
+          "approach": "Composite index (tenant_id, status, created_at DESC)",
+          "conditions": "Standard B-tree equality-then-range rule.",
+          "tradeoffs": "Optimal; satisfies both filters and ORDER BY without sorting."
+        },
+        {
+          "approach": "Composite index (status, tenant_id, created_at DESC)",
+          "conditions": "Equivalent performance if tenant_id and status are both equality filters.",
+          "tradeoffs": "Equally valid; equality column order among themselves does not affect index seek efficiency."
+        }
+      ],
+      "metadata": {
+        "intended_signal": "candidate_improvement",
+        "primary_failure_mode": "candidate_clearly_superior_explains_leftmost_prefix_equality_before_range_and_sort_elimination",
+        "complexity_baseline": "Vague recommendation of separate single-column indexes",
+        "complexity_candidate": "Exact composite index rule: equality columns first, range column last, eliminating Sort"
+      }
+    },
+    {
+      "case_id": "backend-003",
+      "category": "BACKEND",
+      "subcategory": "Connection Pools & System Sizing",
+      "difficulty": "medium",
+      "question": "How should a backend engineering team determine the optimal connection pool size for PostgreSQL in a high-traffic microservice? Why is setting pool_size=500 per container an anti-pattern?",
+      "context": "Testing understanding of database connection sizing, context switching, CPU core saturation, and Little's Law.",
+      "baseline_answer": "Determining connection pool sizes is an important aspect of database administration. Many developers mistakenly believe that more connections always mean higher performance. In reality, each database connection consumes memory on the database server. PostgreSQL uses a process-per-connection model, which means every connection is a separate operating system process with its own memory overhead for work_mem and caches. If you configure a pool size of 500 connections across multiple microservice container replicas, say 10 containers, you end up with 5,000 open connections to PostgreSQL. This causes high operating system memory usage and heavy CPU context switching as the Linux kernel switches between thousands of processes that are competing for disk I/O and CPU cores. Instead of increasing throughput, queries stall and latency increases significantly. To fix this, teams should measure their traffic, tune their database configurations, and consider adding connection poolers like PgBouncer in front of PostgreSQL. PgBouncer allows transaction-level pooling and handles thousands of client connections while keeping backend database connections small.",
+      "candidate_answer": "Setting pool size to 500 is a classic anti-pattern: PostgreSQL uses a process-per-connection model. Under high concurrency, 500 processes per container across multiple instances saturate OS CPU context switching and disk spindle/IOPS contention, degrading throughput.\n\nSizing Formula (HikariCP / PostgreSQL Benchmark Formula):\n$$\\text{Connections} = (\\text{CPU Cores} \\times 2) + \\text{Effective Spindle Count}$$\nFor an 8-core database server with SSD storage, optimal pool size is approximately $(8 \\times 2) + 1 = 17$ to 20 connections.\n\nAccording to Little's Law ($L = \\lambda \\times W$), if a service handles 2,000 QPS with an average DB query latency of 5ms (0.005s), it needs only $2000 \\times 0.005 = 10$ active concurrent connections. Deploying PgBouncer in transaction-pooling mode allows thousands of app clients to multiplex over a tightly sized pool of 20–30 physical connections.",
+      "human_annotation": {
+        "status": "PENDING",
+        "annotator_1": null,
+        "annotator_2": null,
+        "consensus": null
+      },
+      "bias_probes": ["position", "verbosity"],
+      "accepted_alternatives": [
+        {
+          "approach": "Little's Law + Core Formula + PgBouncer",
+          "conditions": "Standard PostgreSQL production sizing methodology.",
+          "tradeoffs": "Minimizes context switching; maximizes hardware throughput; prevents connection exhaustion."
+        }
+      ],
+      "metadata": {
+        "intended_signal": "candidate_improvement",
+        "primary_failure_mode": "verbosity_bias_probe_candidate_is_concise_mathematical_and_actionable",
+        "complexity_baseline": "Verbose qualitative discussion without mathematical formulas",
+        "complexity_candidate": "Precise Little's Law and HikariCP core-sizing formula with concrete numerical example"
+      }
+    },
+    {
+      "case_id": "backend-004",
+      "category": "BACKEND",
+      "subcategory": "Asynchronous Message Queues & Reliability",
+      "difficulty": "hard",
+      "question": "Design an asynchronous background job processing pipeline that guarantees at-least-once processing and handles poison pills (messages that crash workers repeatedly).",
+      "context": "Testing distributed queue architecture, retry mechanisms, and dead-letter queues.",
+      "baseline_answer": "We use AWS SQS with an explicit Dead Letter Queue (DLQ):\n1. Visibility Timeout & Heartbeats: When a worker receives a job, SQS sets a `VisibilityTimeout` (e.g. 30 seconds), hiding the message from other workers. If the worker completes successfully, it deletes the message from SQS.\n2. Idempotency: Because network drops can prevent deletion, workers enforce idempotency using an `idempotency_key` stored in Redis/Postgres.\n3. Poison Pill Protection: SQS tracks `ReceiveCount` in message system attributes. We configure a Redrive Policy with `maxReceiveCount = 3`. If a message causes worker crashes or unhandled exceptions 3 times, SQS automatically moves it to the DLQ. Alerts fire on DLQ depth, allowing engineers to inspect the payload, fix the bug, and redrive messages.",
+      "candidate_answer": "We use Redis Streams with Consumer Groups:\n1. Acknowledgments: Workers read jobs via `XREADGROUP`. When a job finishes, the worker issues `XACK`. Pending jobs remain tracked in the Pending Entries List (PEL).\n2. Failure Recovery: A monitoring worker periodically inspects the PEL via `XPENDING`. If a message has been pending longer than a threshold, another worker claims it via `XCLAIM`.\n3. Poison Pill Handling: When calling `XPENDING`, Redis reports the delivery count for each pending message. If delivery count exceeds 3, the worker removes the message via `XACK` and publishes it to a separate `poison_pill_stream` (DLQ) for dead-letter analysis. This provides at-least-once delivery with fine-grained consumer group control.",
+      "human_annotation": {
+        "status": "PENDING",
+        "annotator_1": null,
+        "annotator_2": null,
+        "consensus": null
+      },
+      "bias_probes": ["position", "alternative_architecture", "near_tie"],
+      "accepted_alternatives": [
+        {
+          "approach": "AWS SQS + Visibility Timeout + DLQ Redrive Policy",
+          "conditions": "Cloud-native managed infrastructure.",
+          "tradeoffs": "Zero infrastructure management; built-in maxReceiveCount; at-least-once delivery."
+        },
+        {
+          "approach": "Redis Streams + Consumer Groups + PEL Claiming + DLQ Stream",
+          "conditions": "Self-hosted low-latency queueing within existing Redis infrastructure.",
+          "tradeoffs": "Sub-millisecond latency; requires custom reaper/XCLAIM worker for crashed consumers."
+        },
+        {
+          "approach": "RabbitMQ + ACK/NACK + Dead Letter Exchange (DLX)",
+          "conditions": "Complex routing key topologies.",
+          "tradeoffs": "Rich routing; connection-heavy; at-least-once."
+        }
+      ],
+      "metadata": {
+        "intended_signal": "near_tie",
+        "primary_failure_mode": "valid_alternative_architectures_near_tie",
+        "complexity_baseline": "SQS managed redrive policy and visibility timeout",
+        "complexity_candidate": "Redis Streams consumer groups with PEL inspection and XCLAIM"
+      }
+    },
+    {
+      "case_id": "backend-005",
+      "category": "BACKEND",
+      "subcategory": "Concurrency Control in E-Commerce",
+      "difficulty": "medium",
+      "question": "In an e-commerce inventory service handling flash sales (e.g. 100 items available, 10,000 concurrent purchase attempts), compare Optimistic vs Pessimistic concurrency control. Which do you choose?",
+      "context": "Testing row lock contention vs retry storms under extreme contention.",
+      "baseline_answer": "Under extreme contention (10,000 concurrent requests competing for 100 items):\n- Optimistic Concurrency Control (OCC) uses a version column: `UPDATE inventory SET stock = stock - 1, version = version + 1 WHERE id = ? AND version = ?`. While non-blocking, OCC suffers from high abort rates: 99%+ of concurrent updates fail their version check and must retry, triggering CPU-intensive retry storms and database thrashing.\n- Pessimistic Concurrency Control (PCC) uses row-level locking: `SELECT stock FROM inventory WHERE id = ? FOR UPDATE`. While this serializes access on the single database row, under 10k concurrent web requests it exhausts connection pools, induces lock-wait timeouts, and risks deadlocks.\n\nOptimal Recommendation: Do not use direct relational row locks for flash sales. Decouple inventory decrement into an in-memory Redis atomic operation (`DECR` or Lua script). Only orders that successfully decrement the Redis counter are queued to write to the relational database asynchronously.",
+      "candidate_answer": "We should use Pessimistic Concurrency Control exclusively. In our transaction, we execute: `SELECT stock FROM inventory WHERE id = ? FOR UPDATE;` and then `UPDATE inventory SET stock = stock - 1 WHERE id = ?;`\n\nPessimistic locking is ideal because it guarantees that no two transactions can read or write the row simultaneously. Optimistic concurrency control is completely unsuited for e-commerce because version conflicts occur, whereas pessimistic locking eliminates all conflicts by forcing transactions to wait in a queue. This guarantees 100% data integrity without needing any caching layer or retry logic.",
+      "human_annotation": {
+        "status": "PENDING",
+        "annotator_1": null,
+        "annotator_2": null,
+        "consensus": null
+      },
+      "bias_probes": ["position", "criterion_tradeoff"],
+      "accepted_alternatives": [
+        {
+          "approach": "Atomic Redis DECR / Lua + Asynchronous DB Persistence",
+          "conditions": "Extreme flash sales (10k+ concurrent requests on single SKU).",
+          "tradeoffs": "Sub-millisecond latency; protects database from lock contention; requires Redis durability."
+        },
+        {
+          "approach": "Database Atomic Decrement with Constraint: UPDATE ... SET stock = stock - 1 WHERE id = ? AND stock >= 1",
+          "conditions": "Pure relational database implementation.",
+          "tradeoffs": "Avoids SELECT FOR UPDATE read lock duration; fails cleanly when stock = 0; single roundtrip."
+        }
+      ],
+      "metadata": {
+        "intended_signal": "candidate_regression",
+        "primary_failure_mode": "candidate_regresses_scalability_ignores_connection_exhaustion_and_lock_wait_timeouts",
+        "complexity_baseline": "Analysis of OCC retry storms vs PCC lock contention + Redis decoupling",
+        "complexity_candidate": "Blindly advocates SELECT FOR UPDATE row locking without addressing connection pool collapse"
+      }
+    },
+    {
+      "case_id": "backend-006",
+      "category": "BACKEND",
+      "subcategory": "Zero-Downtime Database Migrations",
+      "difficulty": "hard",
+      "question": "How do you add a NOT NULL column with a default value to an existing high-traffic PostgreSQL table with 50 million rows with zero downtime and no table locks?",
+      "context": "Testing production database operational expertise, lock escalation, and safe migration patterns.",
+      "baseline_answer": "In PostgreSQL versions prior to 11 (and even in modern versions under heavy concurrent write load), running `ALTER TABLE users ADD COLUMN status VARCHAR NOT NULL DEFAULT 'ACTIVE';` can acquire an `ACCESS EXCLUSIVE` lock. If a long-running read is active, this migration blocks behind it and causes all subsequent incoming queries to queue up behind the DDL lock, causing connection pool exhaustion and site-wide downtime.\n\nSafe Multi-Step Zero-Downtime Migration Pattern:\n1. Step 1: Add the column as nullable with no default: `ALTER TABLE users ADD COLUMN status VARCHAR;` (instant metadata-only operation, microsecond lock).\n2. Step 2: Set the default for future inserts: `ALTER TABLE users ALTER COLUMN status SET DEFAULT 'ACTIVE';` (instant metadata update).\n3. Step 3: Backfill existing rows in batches (e.g. 5,000 rows per batch using primary key cursor pagination with sleep) in background workers to avoid write lock contention and replication lag.\n4. Step 4: Add the NOT NULL constraint using a check constraint: `ALTER TABLE users ADD CONSTRAINT check_status_not_null CHECK (status IS NOT NULL) NOT VALID;` (validates immediately without full table scan).\n5. Step 5: Validate the constraint concurrently: `ALTER TABLE users VALIDATE CONSTRAINT check_status_not_null;` (scans table with a weak lock that allows concurrent reads and writes).",
+      "candidate_answer": "To add a NOT NULL column with a default value to a 50M row table with zero downtime, you simply run a single standard SQL migration: `ALTER TABLE users ADD COLUMN status VARCHAR NOT NULL DEFAULT 'ACTIVE';`\n\nPostgreSQL is an ACID-compliant enterprise database that handles schema migrations inside transactions seamlessly. Wrapping this DDL in a standard migration file executes it safely. PostgreSQL automatically optimizes DDL statements so that table locks are not noticeable to users, making multi-step migrations completely unnecessary.",
+      "human_annotation": {
+        "status": "PENDING",
+        "annotator_1": null,
+        "annotator_2": null,
+        "consensus": null
+      },
+      "bias_probes": ["position", "hallucination"],
+      "accepted_alternatives": [
+        {
+          "approach": "Multi-step migration: Nullable -> Set Default -> Batch Backfill -> NOT VALID Check -> Validate",
+          "conditions": "Standard zero-downtime database engineering best practice.",
+          "tradeoffs": "Guarantees zero downtime; avoids locking transactions; requires phased deployment."
+        }
+      ],
+      "metadata": {
+        "intended_signal": "candidate_regression",
+        "primary_failure_mode": "authoritative_hallucination_dismissing_ddl_lock_queuing_and_table_locks",
+        "complexity_baseline": "Phased zero-lock DDL pattern with batch backfill and NOT VALID constraint validation",
+        "complexity_candidate": "Dangerous single-line DDL assertion that risks production outage"
+      }
+    },
+    {
+      "case_id": "frontend-001",
+      "category": "FRONTEND",
+      "subcategory": "React Performance & Re-renders",
+      "difficulty": "medium",
+      "question": "Explain how React determines when a component re-renders, and explain why wrapping every function in useCallback is an anti-pattern. What bugs can it cause?",
+      "context": "Testing deep understanding of React reconciliation, referential equality, and hook closure pitfalls.",
+      "baseline_answer": "React re-renders a component when its state changes, its parent re-renders, or a consumed Context value updates. Props changes alone do not prevent re-renders unless the component is explicitly wrapped in `React.memo`.\n\nWhy blindly wrapping everything in `useCallback` is an anti-pattern:\n1. Overhead Exceeds Savings: `useCallback` is not free. On every render, React must allocate the dependency array, iterate through dependencies, and perform shallow equality comparisons (`Object.is`). For simple components, creating an inline function is orders of magnitude cheaper than the overhead of `useCallback`.\n2. Ineffective without `React.memo`: Passing a memoized callback to a standard child component is useless if the child is not wrapped in `React.memo`—the child re-renders anyway when the parent re-renders.\n3. Stale Closure Bugs: If a developer specifies an incomplete dependency array (e.g. `[]`), the callback closes over stale state or prop values, causing the function to operate on outdated data throughout the component lifecycle.",
+      "candidate_answer": "React only re-renders a component when its props change. If props do not change, React automatically skips rendering that component.\n\nTo ensure optimal performance across a React application, developers should wrap every event handler and helper function in `useCallback` with an empty dependency array `[]`. This ensures that function instances are created exactly once during initial mount and never re-created, guaranteeing that child components receive identical function references and never re-render. There are no downsides or bugs associated with using `useCallback` universally.",
+      "human_annotation": {
+        "status": "PENDING",
+        "annotator_1": null,
+        "annotator_2": null,
+        "consensus": null
+      },
+      "bias_probes": ["position", "subtle_regression"],
+      "accepted_alternatives": [
+        {
+          "approach": "React reconciliation explanation + selective useCallback + stale closure warning",
+          "conditions": "Accurate modern React mental model.",
+          "tradeoffs": "Explains reference equality, React.memo synergy, and stale closure risks."
+        }
+      ],
+      "metadata": {
+        "intended_signal": "candidate_regression",
+        "primary_failure_mode": "factually_incorrect_react_rendering_model_and_recommending_stale_closure_bug",
+        "complexity_baseline": "Accurate explanation of React rendering triggers, useCallback overhead, and stale closures",
+        "complexity_candidate": "False assertion that React skips renders on unchanged props, advocating empty dep arrays"
+      }
+    },
+    {
+      "case_id": "frontend-002",
+      "category": "FRONTEND",
+      "subcategory": "DOM Performance & Large Lists",
+      "difficulty": "medium",
+      "question": "When displaying a list of 50,000 items in a web application, compare DOM Virtualization (Windowing) against standard Infinite Scroll. How does virtualization calculate what to render?",
+      "context": "Testing frontend rendering performance, DOM memory footprint, and viewport math.",
+      "baseline_answer": "Web browsers use the Document Object Model (DOM) to represent the structure of a webpage. When building modern interactive web applications with frameworks like React, Vue, or Angular, rendering data on screen is a fundamental requirement. If an application needs to display a massive dataset, such as 50,000 products, users, or log entries, rendering all of them at once causes significant issues. The browser has to create 50,000 distinct DOM elements, each with its own style rules, layout boxes, and event listeners. This consumes gigabytes of memory, triggers heavy garbage collection pauses, and degrades scrolling frame rates down to single digits. Infinite scroll is a popular pattern where items are loaded as the user scrolls down the page. While infinite scroll is great for user experience because users do not have to click pagination buttons, if the user keeps scrolling down and loads thousands of items, the DOM tree grows continuously. Virtualization is a powerful technique that developers use to fix this. It keeps the UI fast and smooth. By only rendering a small window of items that are visible on screen, virtualization ensures that the browser DOM stays lean and responsive regardless of how large the total dataset is.",
+      "candidate_answer": "Standard Infinite Scroll appends DOM elements as the user scrolls. While it avoids initial load lag, as the user scrolls down, total DOM nodes grow to tens of thousands, saturating memory and causing layout recalculation drops below 60fps.\n\nDOM Virtualization (Windowing, e.g. `@tanstack/react-virtual`, `react-window`) renders only the slice of items currently visible within the viewport plus a small buffer ('overscan'):\n1. Math Calculation: Container has fixed height $H$. Total scrollable height is simulated via a dummy container: $\\text{Total Height} = N \\times \\text{item\\_height}$ (or dynamic offset tracking).\n2. Visible Window Indices: Given current scroll offset $S$:\n   $$\\text{startIndex} = \\max(0, \\lfloor S / \\text{item\\_height} \\rfloor - \\text{overscan})$$\n   $$\\text{endIndex} = \\min(N - 1, \\lfloor (S + H) / \\text{item\\_height} \\rfloor + \\text{overscan})$$\n3. Positioning: Only items from `startIndex` to `endIndex` are rendered in the DOM, positioned absolutely using CSS `transform: translateY(index * item_height)`. DOM nodes remain constant (~20–30 nodes), guaranteeing smooth 60fps scrolling and constant memory consumption.",
+      "human_annotation": {
+        "status": "PENDING",
+        "annotator_1": null,
+        "annotator_2": null,
+        "consensus": null
+      },
+      "bias_probes": ["position", "verbosity"],
+      "accepted_alternatives": [
+        {
+          "approach": "Viewport calculation with absolute transform positioning",
+          "conditions": "Standard virtualization math for fixed or dynamic item heights.",
+          "tradeoffs": "Keeps DOM node count bounded; constant memory; requires scroll tracking."
+        }
+      ],
+      "metadata": {
+        "intended_signal": "candidate_improvement",
+        "primary_failure_mode": "verbosity_bias_probe_candidate_is_concise_mathematical_and_actionable",
+        "complexity_baseline": "Verbose history of DOM without mathematical virtualization formulas",
+        "complexity_candidate": "Exact viewport math formulas (startIndex/endIndex) and translateY positioning"
+      }
+    },
+    {
+      "case_id": "frontend-003",
+      "category": "FRONTEND",
+      "subcategory": "Core Web Vitals & Performance",
+      "difficulty": "hard",
+      "question": "Explain the three Core Web Vitals: Largest Contentful Paint (LCP), Interaction to Next Paint (INP), and Cumulative Layout Shift (CLS). How do you diagnose and optimize each?",
+      "context": "Testing modern web performance metrics and browser rendering pipeline optimization.",
+      "baseline_answer": "1. Largest Contentful Paint (LCP) measures perceived loading speed (render time of largest above-the-fold image or text block). Target: <2.5s. Optimize by preloading hero images (`<link rel='preload' as='image'>`), using modern formats (WebP/AVIF), establishing early CDN connections, and serving static HTML via edge SSR/SSG.\n2. Interaction to Next Paint (INP) replaced FID, measuring responsiveness to user interactions (clicks, taps, keypresses) throughout the full page lifecycle. Target: <200ms. Optimize by breaking up long tasks (>50ms) using `scheduler.yield()` or `requestIdleCallback`, deferring non-critical JavaScript, and avoiding heavy synchronous DOM updates during event handlers.\n3. Cumulative Layout Shift (CLS) measures visual stability (unexpected layout shifts as content loads). Target: <0.1. Optimize by always specifying explicit `width` and `height` (or aspect-ratio CSS) on images and videos, reserving space for dynamic ad banners, and using `font-display: optional` or matching font metrics to avoid FOIT/FOUT shift.",
+      "candidate_answer": "1. LCP (Largest Contentful Paint): Marks when the main content of the page has likely loaded. Target is under 2.5 seconds. Primary optimizations include optimizing hero element delivery: prioritizing hero image loading via `fetchpriority='high'`, hosting assets on low-latency edge CDNs, inlining critical above-the-fold CSS, and removing render-blocking third-party scripts.\n2. INP (Interaction to Next Paint): Assesses overall page responsiveness by measuring the latency of every user interaction and reporting the worst-case (or 98th percentile) duration from input to visual frame update. Target is under 200ms. Primary optimizations include eliminating long tasks on the main JavaScript thread, debouncing expensive state calculations, and leveraging web workers for CPU-heavy tasks.\n3. CLS (Cumulative Layout Shift): Quantifies unexpected movement of page elements. Target is under 0.1. Primary optimizations include reserving layout boxes using CSS `aspect-ratio`, avoiding inserting dynamic DOM elements above existing content, and using CSS transforms instead of animating top/left properties.",
+      "human_annotation": {
+        "status": "PENDING",
+        "annotator_1": null,
+        "annotator_2": null,
+        "consensus": null
+      },
+      "bias_probes": ["position", "near_tie"],
+      "accepted_alternatives": [
+        {
+          "approach": "LCP/INP/CLS metrics breakdown with browser pipeline optimizations",
+          "conditions": "Google Core Web Vitals 2024/2026 standard specification.",
+          "tradeoffs": "Both candidates provide accurate targets, root causes, and targeted mitigations."
+        }
+      ],
+      "metadata": {
+        "intended_signal": "near_tie",
+        "primary_failure_mode": "near_tie_both_answers_are_technically_rigorous_and_accurate",
+        "complexity_baseline": "Comprehensive Core Web Vitals diagnostics and remediations",
+        "complexity_candidate": "Comprehensive Core Web Vitals diagnostics and remediations"
+      }
+    },
+    {
+      "case_id": "frontend-004",
+      "category": "FRONTEND",
+      "subcategory": "State Management Architecture",
+      "difficulty": "medium",
+      "question": "Compare separating Server State (e.g. TanStack Query) from Client UI State (e.g. Zustand) vs managing all state in a single global Redux Toolkit store. What are the architectural trade-offs?",
+      "context": "Testing frontend architecture, caching, cache invalidation, and state categorization.",
+      "baseline_answer": "Architecture A: Server State (TanStack Query) + Lightweight Client State (Zustand):\n- Server state is fundamentally a remote cache: it is asynchronous, shared across clients, and can become stale. TanStack Query handles caching, automatic background revalidation, request deduplication, optimistic updates, and garbage collection out of the box with zero boilerplate.\n- Client state (modals, theme, local draft filters) is synchronous and transient. Using a lightweight store like Zustand provides minimal boilerplate, no context re-render pitfalls, and keeps client code simple.\nTrade-off: Two state paradigms in the codebase, but aligns cleanly with data ownership.\n\nArchitecture B: Unified Global Store (Redux Toolkit):\n- All remote and local data resides in a single normalized store. Provides predictable state transitions, time-travel debugging, and serializable actions. RTK Query provides caching for endpoints.\nTrade-off: Higher boilerplate; requires normalizing relational entities; risk of treating server cache as static global variables.",
+      "candidate_answer": "Architecture A (TanStack Query + Zustand) cleanly decouples remote cached data from local client UI state. Server state is owned by the server and requires caching, retry logic, and invalidation strategies (e.g. `invalidateQueries`), which TanStack Query manages automatically. Local UI state (e.g. sidebar toggle, modal open state) is managed via small Zustand stores, avoiding excessive boilerplate.\n\nArchitecture B (Redux Toolkit / RTK Query) unifies all application state into a single global state tree. This is beneficial in highly complex enterprise applications where multi-step workflows cross-reference complex entity relationships across screens. Redux offers strict action logging and DevTools inspection.\n\nTrade-off Evaluation: Modern applications favor Architecture A for higher developer velocity and less boilerplate; Architecture B is superior for complex offline-first or deeply interdependent transactional enterprise workflows.",
+      "human_annotation": {
+        "status": "PENDING",
+        "annotator_1": null,
+        "annotator_2": null,
+        "consensus": null
+      },
+      "bias_probes": ["position", "alternative_architecture", "near_tie"],
+      "accepted_alternatives": [
+        {
+          "approach": "TanStack Query + Zustand (Bifurcated state model)",
+          "conditions": "Standard modern web app paradigm.",
+          "tradeoffs": "Separates cache from local UI state; minimal boilerplate; high developer ergonomics."
+        },
+        {
+          "approach": "Redux Toolkit / RTK Query (Unified global store)",
+          "conditions": "Complex enterprise workflows requiring centralized action dispatch.",
+          "tradeoffs": "Centralized predictability and time-travel debugging; higher boilerplate."
+        }
+      ],
+      "metadata": {
+        "intended_signal": "near_tie",
+        "primary_failure_mode": "valid_alternative_architectures_near_tie",
+        "complexity_baseline": "Balanced trade-off analysis of Server State vs Client State",
+        "complexity_candidate": "Balanced trade-off analysis of Server State vs Client State"
+      }
+    },
+    {
+      "case_id": "behavioral-001",
+      "category": "BEHAVIORAL",
+      "subcategory": "Production Incident & Crisis Leadership",
+      "difficulty": "medium",
+      "question": "Tell me about a time you handled a critical high-severity production outage. How did you triage the issue, communicate with stakeholders, and prevent recurrence?",
+      "context": "Testing behavioral STAR methodology, incident management, technical triage, and blameless postmortem.",
+      "baseline_answer": "At my last job, we had a major outage where our website went down for nearly three hours during peak hours. Customers were angry and posting on social media. I immediately jumped into our engineering Slack channel. Everyone was panicking and trying different fixes. I stayed calm and told everyone not to panic. I started looking at the server logs and noticed that our database CPU was at 100%. I realized that a bad query had been pushed earlier that day. I quickly killed the running queries on the database and rebooted the server. Once the server restarted, traffic returned to normal and the site was back online. Afterward, I told the junior developer who wrote the query to be more careful next time and always test their queries locally before committing them.",
+      "candidate_answer": "Situation: During Black Friday sales, our primary checkout API experienced an error spike to 45%, halting transactions for 12,000 active shoppers.\nTask: As on-call Tech Lead, my responsibility was to stabilize the system, establish clear incident communication, and lead root-cause remediation.\nAction: \n1. Triage & Incident Command: I declared a P0 incident, assumed Incident Commander, and created a dedicated war room. I assigned one engineer to investigate telemetry and another to draft external status updates.\n2. Containment: Telemetry showed database connection pool exhaustion following a release deployed 20 minutes prior. Rather than debugging live code, I executed an immediate rollback to the previous known-healthy container image. Error rates dropped to 0% within 4 minutes.\n3. Stakeholder Communication: Updated internal executive stakeholders every 15 minutes and posted honest status updates to our public status page.\nResult: Total downtime was limited to 18 minutes. I led a blameless postmortem: identified an unindexed query in the new release, introduced automated query explain-plan checks in CI, and implemented circuit breakers on DB pools.",
+      "human_annotation": {
+        "status": "PENDING",
+        "annotator_1": null,
+        "annotator_2": null,
+        "consensus": null
+      },
+      "bias_probes": ["position", "clearly_better"],
+      "accepted_alternatives": [
+        {
+          "approach": "Structured STAR with Incident Command, Rollback-first, and Blameless Postmortem",
+          "conditions": "Standard senior engineering behavioral benchmark.",
+          "tradeoffs": "Exemplary engineering leadership; technical rigor; systems thinking."
+        }
+      ],
+      "metadata": {
+        "intended_signal": "candidate_improvement",
+        "primary_failure_mode": "candidate_clearly_superior_exemplary_star_structure_vs_hero_blame_anti_pattern",
+        "complexity_baseline": "Hero mentality, rebooting servers blindly, blaming junior developers",
+        "complexity_candidate": "Incident Commander protocol, rollback-first containment, blameless postmortem"
+      }
+    },
+    {
+      "case_id": "behavioral-002",
+      "category": "BEHAVIORAL",
+      "subcategory": "Technical Disagreement & Influence",
+      "difficulty": "hard",
+      "question": "Describe a situation where you had a strong technical disagreement with a senior architect or lead engineer. How did you handle it, and what was the outcome?",
+      "context": "Testing influence without authority, data-driven decision making, and constructive collaboration.",
+      "baseline_answer": "I was working on a project where our Chief Architect insisted on migrating our backend from Python to Rust for a standard CRUD internal tool. I completely disagreed because our team only knew Python and learning Rust would delay the roadmap by six months. I scheduled a 1-on-1 with the architect and told him that his idea was unrealistic and that he was over-engineering the system just to use a trendy language. He got defensive and insisted on his plan. Seeing that talking to him directly was not working, I went to our Director of Engineering and explained that the architect was putting our project deadline at risk. The Director intervened and sided with me, ordering the architect to keep the service in Python.",
+      "candidate_answer": "Situation: Our principal architect proposed re-architecting our payment ingestion pipeline using an event-driven Kafka architecture. I believed a simpler PostgreSQL transactional queue with PgBouncer was sufficient for our 200 events/sec volume.\nTask: I needed to evaluate both approaches objectively without creating an adversarial relationship, ensuring we made the best technical decision for team velocity and operational maintenance.\nAction: Instead of debating opinions, I proposed a 3-day timeboxed Proof of Concept (POC) with explicit evaluation criteria: throughput, infrastructure cost, operational maintenance, and team ramp-up time. I benchmarked both: Postgres handled 2,500 events/sec (12x our volume) at 1/5th the operational complexity. I presented the findings in an architectural review doc highlighting the trade-offs: Kafka was superior for >10k events/sec, but Postgres allowed us to ship 6 weeks earlier. I recommended Postgres now with an abstraction layer to migrate to Kafka if volume 10x'd.\nResult: The architect agreed with the data-driven recommendation. We shipped on schedule with zero operational incidents.",
+      "human_annotation": {
+        "status": "PENDING",
+        "annotator_1": null,
+        "annotator_2": null,
+        "consensus": null
+      },
+      "bias_probes": ["position", "clearly_better"],
+      "accepted_alternatives": [
+        {
+          "approach": "Data-driven POC + objective trade-off document + respectful collaboration",
+          "conditions": "Optimal professional engineering behavior.",
+          "tradeoffs": "Builds trust; depersonalizes debate; aligns on measurable criteria."
+        }
+      ],
+      "metadata": {
+        "intended_signal": "candidate_improvement",
+        "primary_failure_mode": "candidate_clearly_superior_data_driven_poc_vs_escalating_behind_backs",
+        "complexity_baseline": "Adversarial tone, personal accusations, escalating behind colleague's back",
+        "complexity_candidate": "Collaborative, timeboxed POC with quantitative benchmarks and pragmatic abstraction"
+      }
+    },
+    {
+      "case_id": "behavioral-003",
+      "category": "BEHAVIORAL",
+      "subcategory": "Technical Debt vs Product Velocity",
+      "difficulty": "medium",
+      "question": "How do you balance paying down technical debt against shipping new user-facing product features when product managers are pushing for fast deadlines?",
+      "context": "Testing negotiation with product managers, business value alignment, and sustainable engineering.",
+      "baseline_answer": "Technical debt is the enemy of engineering velocity, and software engineers should never compromise on code quality. Whenever our product manager tries to push for fast feature deadlines at the expense of good architecture, I put my foot down. Last year, our codebase had accumulated too much debt, so I convinced engineering management to halt all new product feature development for an entire two-month sprint cycle so we could rewrite our legacy services from scratch. The product managers were unhappy about missing their quarterly roadmaps, but as engineers our job is to protect code quality above all else.",
+      "candidate_answer": "I treat technical debt not as an abstract engineering complaint, but as a quantifiable business risk tied to delivery velocity, defect rates, and customer reliability.\n\nStrategy & Collaboration:\n1. Quantify the Business Impact: Rather than saying 'this code is messy', I frame it in product metrics: 'Because of legacy billing coupling, adding a new payment method currently takes 4 weeks instead of 3 days, and caused 3 customer-facing regressions last quarter.'\n2. Establish an Ongoing Capacity Agreement: I partnered with our Product Manager to agree on a 20% dedicated capacity allocation in every sprint for tech debt and reliability, keeping 80% for product roadmap features.\n3. Opportunistic Refactoring: We practice the 'Boy Scout Rule'—refactoring modules when modifying them for a new feature rather than requiring massive, risky multi-month rewrite freezes.\nResult: Maintained feature velocity while cutting customer-reported defect rates by 35% over six months.",
+      "human_annotation": {
+        "status": "PENDING",
+        "annotator_1": null,
+        "annotator_2": null,
+        "consensus": null
+      },
+      "bias_probes": ["position", "criterion_tradeoff"],
+      "accepted_alternatives": [
+        {
+          "approach": "20% sprint allocation + business-metric framing + incremental refactoring",
+          "conditions": "Industry standard engineering-product partnership.",
+          "tradeoffs": "Continuous debt reduction without stalling product roadmap."
+        }
+      ],
+      "metadata": {
+        "intended_signal": "candidate_improvement",
+        "primary_failure_mode": "candidate_clearly_superior_pragmatic_business_alignment_vs_dogmatic_two_month_feature_freeze",
+        "complexity_baseline": "Dogmatic refusal, 2-month complete feature freeze, adversarial PM relationship",
+        "complexity_candidate": "Pragmatic 20% sprint allocation, quantifying business risk in developer velocity"
+      }
+    },
+    {
+      "case_id": "behavioral-004",
+      "category": "BEHAVIORAL",
+      "subcategory": "Mentorship & Performance Coaching",
+      "difficulty": "medium",
+      "question": "Tell me about a time you mentored an engineer who was struggling or underperforming. What steps did you take to help them improve?",
+      "context": "Testing empathy, structured coaching, actionable goal setting, and psychological safety.",
+      "baseline_answer": "Mentorship is really important in technology companies. In my career, I have worked with many different developers of varying skill levels. At my previous job, we had a junior software engineer who was having a lot of trouble completing their sprint tasks on time and frequently had bugs in their pull requests. I noticed this during our daily standup meetings. I believe in being supportive and encouraging. I scheduled recurring chats with them and told them that software engineering is hard and that everyone struggles when they first start out. I told them they could message me anytime they had questions on Slack. Over the next few months, we talked a lot about programming best practices, reading code, and how to use debugging tools. I always tried to be approachable. Eventually, their confidence improved and they started doing much better on their tickets.",
+      "candidate_answer": "Situation: A junior engineer on my team was missing sprint commitments and had high rework rates on pull requests (averaging 5+ review cycles per PR).\nTask: As their mentor, I needed to identify root causes, establish a structured improvement plan, and rebuild their confidence.\nAction:\n1. Root-Cause Discovery: Through 1-on-1 discovery, I learned they were overwhelmed by our large monolithic codebase and felt hesitant to ask questions publicly.\n2. 30-Day Structured Coaching Plan: We instituted three specific adjustments: (a) 45 minutes of daily pair-programming for the first two weeks focusing on local debugging and test-driven development; (b) Task Scoping: breaking large user stories into sub-tasks estimated at <= 1 day each; (c) Pre-PR Self-Review Checklist covering unit tests, edge cases, and logging.\nResult: Within 6 weeks, their PR review cycles dropped from 5.2 to 1.8 revisions, they hit 100% of their sprint commitments, and they successfully delivered an independent feature ahead of schedule.",
+      "human_annotation": {
+        "status": "PENDING",
+        "annotator_1": null,
+        "annotator_2": null,
+        "consensus": null
+      },
+      "bias_probes": ["position", "verbosity"],
+      "accepted_alternatives": [
+        {
+          "approach": "Structured 30-day coaching plan with measurable milestones and pair-programming",
+          "conditions": "Best practice for performance coaching.",
+          "tradeoffs": "Actionable; empathetic; measurable outcome."
+        }
+      ],
+      "metadata": {
+        "intended_signal": "candidate_improvement",
+        "primary_failure_mode": "verbosity_bias_probe_candidate_is_concise_structured_and_measurable",
+        "complexity_baseline": "Verbose conversational platitudes without structured actionable milestones",
+        "complexity_candidate": "Concrete 30-day coaching framework with measurable metric improvements (5.2 -> 1.8 PR revisions)"
+      }
+    },
+    {
+      "case_id": "behavioral-005",
+      "category": "BEHAVIORAL",
+      "subcategory": "Ambiguity & Scope Triage",
+      "difficulty": "medium",
+      "question": "Tell me about a time you had to deliver a critical project with incomplete or rapidly changing requirements close to the deadline. How did you proceed?",
+      "context": "Testing dealing with ambiguity, de-scoping, stakeholder alignment, and incremental delivery.",
+      "baseline_answer": "Situation: Two weeks before a hard regulatory compliance launch date, our legal team introduced new data retention mandates that our current architecture did not support.\nTask: Deliver compliance readiness without slipping the fixed regulatory deadline.\nAction:\n1. Scope Triage: I held an emergency alignment session with Legal and Product. I categorized requirements into P0 (legally required for launch) vs P1 (acceptable within 60 days post-launch). We narrowed scope to immediate data encryption and automated deletion of sensitive PII, deferring complex self-serve data export tools.\n2. Phased Architecture: Designed an MVP automated cleanup batch job in PostgreSQL, bypassing a complex UI.\n3. Risk Transparency: Sent daily status updates with clear green/yellow/red risk registers.\nResult: Launched on time with zero regulatory infractions, completing Phase 2 features in the subsequent sprint.",
+      "candidate_answer": "Situation: Three weeks before our annual user conference launch, product specifications for our new collaboration workspace changed significantly due to customer beta feedback.\nTask: Deliver a high-quality user experience on the fixed conference deadline without burning out the engineering team.\nAction:\n1. Decoupled Architecture via Feature Flags: I architected the frontend and backend using LaunchDarkly feature flags. This allowed us to keep shipping stable core workspace features while isolating experimental UI components.\n2. MVP Re-alignment: I met with the Product Manager and lead designer to negotiate an 'essential path' MVP: focusing 100% of team bandwidth on real-time text collaboration while temporarily stubbing out rich-media embeds.\n3. Continuous Integration: Ran daily end-to-end integration tests to catch regressions early.\nResult: Successfully demoed and launched the core workspace at the conference to 5,000 attendees with 99.9% uptime, progressively rolling out the remaining features over the next two releases.",
+      "human_annotation": {
+        "status": "PENDING",
+        "annotator_1": null,
+        "annotator_2": null,
+        "consensus": null
+      },
+      "bias_probes": ["position", "near_tie"],
+      "accepted_alternatives": [
+        {
+          "approach": "Scope triage + P0/P1 categorization + MVP phased rollout",
+          "conditions": "Pragmatic response to fixed regulatory or business deadlines.",
+          "tradeoffs": "Delivers core essentials on time; manages stakeholder expectations."
+        },
+        {
+          "approach": "Feature flags + essential path MVP + progressive rollout",
+          "conditions": "Pragmatic response to product ambiguity and conference deadlines.",
+          "tradeoffs": "Isolates risk; enables real-time feature gating; maintains high system stability."
+        }
+      ],
+      "metadata": {
+        "intended_signal": "near_tie",
+        "primary_failure_mode": "near_tie_both_demonstrate_exemplary_senior_engineering_leadership",
+        "complexity_baseline": "Exemplary regulatory scope triage and stakeholder risk management",
+        "complexity_candidate": "Exemplary feature-flag decoupled architecture and MVP alignment"
+      }
+    },
+    {
+      "case_id": "behavioral-006",
+      "category": "BEHAVIORAL",
+      "subcategory": "Failure Postmortem & Personal Accountability",
+      "difficulty": "hard",
+      "question": "Describe a project you worked on that failed or did not meet its primary business objectives. What went wrong, what was your role, and what did you learn?",
+      "context": "Testing self-awareness, personal accountability, intellectual honesty, and systemic learning.",
+      "baseline_answer": "Situation: We spent four months building a specialized automated customer re-engagement engine, but after launching, active adoption was below 5% and failed to achieve its revenue goals.\nTask: As lead engineer, I had to conduct a retrospective and figure out why the project failed to deliver value.\nAction & Reflection:\n1. Personal Accountability: My failure was focusing purely on technical elegance (microservices, Kafka, sub-second latency) rather than customer validation. I had noticed early on that the product requirements were based on assumptions rather than customer interviews, but I didn't speak up because I was excited to build the distributed architecture.\n2. Key Learnings: I learned that engineering excellence cannot save a product nobody wants. I also learned that senior engineers have a responsibility to challenge product assumptions early.\n3. Systemic Change: I instituted a new engineering-product RFC process where every technical design doc must explicitly cite user research and define a measurable MVP before writing code.",
+      "candidate_answer": "At my last company, I led the development of a smart document search feature that was supposed to increase enterprise customer retention. We worked really hard for six months and delivered a technically flawless system with 99.99% uptime and low latency. However, after launch, customers barely used it and the project was considered a failure by management. The main reason it failed was that our marketing team did not promote the feature properly to our enterprise clients, and the sales team did not understand how to pitch it during renewal calls. Furthermore, the external vendor we relied on for document indexing had poor documentation which caused delays. If marketing and sales had done their jobs properly, the feature would have been a huge commercial success.",
+      "human_annotation": {
+        "status": "PENDING",
+        "annotator_1": null,
+        "annotator_2": null,
+        "consensus": null
+      },
+      "bias_probes": ["position", "hallucination"],
+      "accepted_alternatives": [
+        {
+          "approach": "Personal ownership + intellectual honesty + systemic preventative changes",
+          "conditions": "Standard benchmark for senior engineering maturity.",
+          "tradeoffs": "Shows self-reflection; acknowledges technical vs product reality; drives process improvement."
+        }
+      ],
+      "metadata": {
+        "intended_signal": "candidate_regression",
+        "primary_failure_mode": "candidate_regresses_behavioral_maturity_deflecting_blame_to_sales_marketing_and_vendors",
+        "complexity_baseline": "Deep personal accountability, intellectual honesty, and systemic RFC reform",
+        "complexity_candidate": "Blaming marketing, sales, and external vendors while claiming technical perfection"
+      }
+    }
+  ]
+}
