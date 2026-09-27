@@ -654,7 +654,11 @@ def _run_experiment_cli(sub_argv: list[str]) -> int:
     run_p.add_argument("--repeats", type=int, default=1, help="Repeat count.")
     run_p.add_argument("--execute", action="store_true", help="Explicit confirmation flag to execute live model API calls.")
     run_p.add_argument("--dry-run", action="store_true", help="Explicit dry-run simulation mode.")
-    run_p.add_argument("--allow-unfrozen", action="store_true", help="Allow software infrastructure tests with unfrozen ground truth.")
+    run_p.add_argument(
+        "--allow-unfrozen",
+        action="store_true",
+        help="DEVELOPMENT/FIXTURE ONLY: Allow offline test harness execution with unfrozen ground truth. Strictly blocked if --execute is passed.",
+    )
 
     # status
     stat_p = subparsers.add_parser("status", help="Inspect status and progress of an experiment run.")
@@ -694,6 +698,17 @@ def _run_experiment_cli(sub_argv: list[str]) -> int:
         return 0 if res.is_ready else 1
 
     elif args.experiment_command == "run":
+        if args.allow_unfrozen and args.execute:
+            print(
+                "Execution Error: --allow-unfrozen cannot be combined with live execution (--execute). "
+                "Official calibration runs require verified, frozen human ground truth.",
+                file=sys.stderr,
+            )
+            return 1
+
+        if args.allow_unfrozen:
+            print("[SAFETY WARNING] Running with --allow-unfrozen. This is a DEVELOPMENT/FIXTURE mode only and does not produce official calibration evidence.\n")
+
         is_dry_run = not args.execute
         if is_dry_run:
             print("DRY RUN — no provider calls made. (Use --execute for live API calls)\n")

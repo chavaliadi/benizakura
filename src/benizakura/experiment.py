@@ -9,6 +9,7 @@ import math
 import os
 from pathlib import Path
 import re
+import socket
 import time
 from typing import Any, Callable, Dict, List, Optional, Protocol, Sequence, Set, Tuple, Union
 import urllib.error
@@ -30,6 +31,8 @@ from benizakura.errors import (
     ExperimentError,
     JudgeParseError,
     JudgeProviderError,
+    JudgeRateLimitError,
+    JudgeTimeoutError,
     JudgeValidationError,
 )
 from benizakura.models import (
@@ -78,6 +81,7 @@ class CallStatus(str, Enum):
     VALIDATION_ERROR = "VALIDATION_ERROR"
     PROVIDER_ERROR = "PROVIDER_ERROR"
     TIMEOUT = "TIMEOUT"
+    RATE_LIMIT = "RATE_LIMIT"
 
 
 # ============================================================================
@@ -280,11 +284,21 @@ class AnthropicJudgeProvider:
                 err_body = err.read().decode("utf-8")
             except Exception:
                 pass
+            if err.code == 429:
+                raise JudgeRateLimitError(
+                    f"Anthropic API HTTP Error 429 Rate Limit: {sanitize_secrets(err_body)}"
+                ) from err
             raise JudgeProviderError(
                 f"Anthropic API HTTP Error {err.code}: {sanitize_secrets(err_body)}"
             ) from err
+        except (TimeoutError, socket.timeout) as err:
+            raise JudgeTimeoutError(f"Anthropic API call timed out: {err}") from err
         except urllib.error.URLError as err:
+            if "timed out" in str(err).lower():
+                raise JudgeTimeoutError(f"Anthropic API call timed out: {err}") from err
             raise JudgeProviderError(f"Anthropic network connection failed: {err}") from err
+        except JudgeProviderError:
+            raise
         except Exception as exc:
             raise JudgeProviderError(f"Anthropic generation error: {exc}") from exc
 
@@ -356,11 +370,21 @@ class OpenAIJudgeProvider:
                 err_body = err.read().decode("utf-8")
             except Exception:
                 pass
+            if err.code == 429:
+                raise JudgeRateLimitError(
+                    f"OpenAI API HTTP Error 429 Rate Limit: {sanitize_secrets(err_body)}"
+                ) from err
             raise JudgeProviderError(
                 f"OpenAI API HTTP Error {err.code}: {sanitize_secrets(err_body)}"
             ) from err
+        except (TimeoutError, socket.timeout) as err:
+            raise JudgeTimeoutError(f"OpenAI API call timed out: {err}") from err
         except urllib.error.URLError as err:
+            if "timed out" in str(err).lower():
+                raise JudgeTimeoutError(f"OpenAI API call timed out: {err}") from err
             raise JudgeProviderError(f"OpenAI network connection failed: {err}") from err
+        except JudgeProviderError:
+            raise
         except Exception as exc:
             raise JudgeProviderError(f"OpenAI generation error: {exc}") from exc
 
@@ -412,16 +436,40 @@ class PrerequisiteCheckResult:
     human_kappa: Optional[float]
     kappa_sufficient: bool
     blocking_reasons: List[str]
+    ground_truth_status: Optional[str] = None
+    is_fixture_mode: bool = False
 
     def summary(self) -> str:
+        if self.ground_truth_status == "PENDING_HUMAN_ANNOTATION":
+            gt_status_str = "PENDING_HUMAN_ANNOTATION"
+            agreement_str = "NOT AVAILABLE — human annotation pending"
+        elif self.ground_truth_frozen:
+            gt_status_str = "GROUND_TRUTH_FROZEN"
+            agreement_str = (
+                f"{self.human_kappa:.4f} (Required: >= {KAPPA_MINIMUM_THRESHOLD:.2f})"
+                if self.human_kappa is not None
+                else "N/A"
+            )
+        else:
+            gt_status_str = self.ground_truth_status or "UNFROZEN"
+            agreement_str = (
+                f"{self.human_kappa:.4f} (Required: >= {KAPPA_MINIMUM_THRESHOLD:.2f})"
+                if self.human_kappa is not None
+                else "N/A"
+            )
+
+        status_display = "YES" if self.is_ready else "BLOCKED"
+        if self.is_fixture_mode:
+            status_display = "FIXTURE_MODE (UNFROZEN TEST ONLY)"
+
         lines = [
             "Human Calibration Prerequisite Check",
             "====================================",
-            f"Ready for Live Calibration: {'YES' if self.is_ready else 'BLOCKED'}",
+            f"Ready for Live Calibration: {status_display}",
             f"Benchmark Hash Valid:       {self.benchmark_hash_valid}",
             f"Ground Truth File Exists:   {self.ground_truth_exists}",
-            f"Ground Truth Frozen:        {self.ground_truth_frozen}",
-            f"Human-Human Cohen's kappa:  {self.human_kappa if self.human_kappa is not None else 'N/A'} (Required: >= {KAPPA_MINIMUM_THRESHOLD:.2f})",
+            f"Ground Truth Status:        {gt_status_str}",
+            f"Agreement Statistics:       {agreement_str}",
         ]
         if self.blocking_reasons:
             lines.append("")
@@ -460,6 +508,7 @@ def check_calibration_prerequisites(
     ground_truth_frozen = False
     human_kappa: Optional[float] = None
     kappa_sufficient = False
+    gt_status: Optional[str] = None
 
     if not ground_truth_exists:
         blocking_reasons.append(f"Ground-truth file not found at: {gt_path}")
@@ -474,32 +523,37 @@ def check_calibration_prerequisites(
         gt_status = gt_data.get("status")
         if gt_status == "GROUND_TRUTH_FROZEN":
             ground_truth_frozen = True
+            # Check human agreement kappa
+            stats = gt_data.get("agreement_statistics", {})
+            if isinstance(stats, dict):
+                human_kappa = stats.get("cohens_kappa")
+                if human_kappa is not None:
+                    if human_kappa >= KAPPA_MINIMUM_THRESHOLD:
+                        kappa_sufficient = True
+                    else:
+                        blocking_reasons.append(
+                            f"Human-human Cohen's kappa is {human_kappa:.4f} < {KAPPA_MINIMUM_THRESHOLD:.2f}. "
+                            "Human calibration kill-gate failed; automated judge calibration is blocked."
+                        )
+                else:
+                    blocking_reasons.append("Human-human Cohen's kappa is not recorded in ground-truth artifact.")
+            else:
+                blocking_reasons.append("Ground-truth artifact missing 'agreement_statistics' container.")
+        elif gt_status == "PENDING_HUMAN_ANNOTATION":
+            blocking_reasons.append(
+                "Ground truth status is 'PENDING_HUMAN_ANNOTATION' (expected 'GROUND_TRUTH_FROZEN'). "
+                "Human annotation is pending; agreement statistics are not yet available. "
+                "Calibration is blocked until independent human annotations and adjudication are completed."
+            )
         else:
             blocking_reasons.append(
                 f"Ground truth status is '{gt_status}' (expected 'GROUND_TRUTH_FROZEN'). "
                 "Actual human annotations and adjudication must be completed and frozen before judge calibration."
             )
 
-        # Check human agreement kappa
-        stats = gt_data.get("agreement_statistics", {})
-        if isinstance(stats, dict):
-            human_kappa = stats.get("cohens_kappa")
-            if human_kappa is not None:
-                if human_kappa >= KAPPA_MINIMUM_THRESHOLD:
-                    kappa_sufficient = True
-                else:
-                    blocking_reasons.append(
-                        f"Human-human Cohen's kappa is {human_kappa:.4f} < {KAPPA_MINIMUM_THRESHOLD:.2f}. "
-                        "Human calibration kill-gate failed; automated judge calibration is blocked."
-                    )
-            else:
-                blocking_reasons.append("Human-human Cohen's kappa is not recorded in ground-truth artifact.")
-        else:
-            blocking_reasons.append("Ground-truth artifact missing 'agreement_statistics' container.")
-
     is_ready = len(blocking_reasons) == 0
     if allow_unfrozen:
-        # Software test mode only
+        # Software fixture/test mode only
         is_ready = True
 
     return PrerequisiteCheckResult(
@@ -510,6 +564,8 @@ def check_calibration_prerequisites(
         human_kappa=human_kappa,
         kappa_sufficient=kappa_sufficient,
         blocking_reasons=blocking_reasons,
+        ground_truth_status=gt_status,
+        is_fixture_mode=allow_unfrozen,
     )
 
 
@@ -745,6 +801,14 @@ def execute_experiment(
             f"Calibration blocked by prerequisites:\n{prereq.summary()}"
         )
 
+    # Safety gate: Live external API calls are strictly disallowed under --allow-unfrozen fixture mode
+    if allow_unfrozen and execute_live and provider_factory is None:
+        raise CalibrationPrerequisiteError(
+            "CRITICAL SAFETY VIOLATION: Live provider execution (--execute) is strictly prohibited "
+            "with fixture/test mode (--allow-unfrozen). Official calibration runs require verified, "
+            "frozen human ground truth with Cohen's kappa >= 0.60."
+        )
+
     # 2. Check if live execution was permitted
     if not execute_live and not plan.is_dry_run:
         # User requested execution without explicit flag
@@ -776,6 +840,14 @@ def execute_experiment(
         manifest_data = plan.to_dict()
         manifest_data["status"] = ExecutionStatus.PLANNED.value
         manifest_data["completed_at"] = None
+        manifest_data["software_version"] = "benizakura-0.1.0"
+        if allow_unfrozen:
+            manifest_data["is_fixture_mode"] = True
+            manifest_data["official_calibration"] = False
+            manifest_data["fixture_warning"] = (
+                "Executed under development fixture mode with unfrozen ground truth. "
+                "Invalid for official calibration evidence."
+            )
         with open(out_base / "manifest.json", "w", encoding="utf-8") as f:
             json.dump(manifest_data, f, indent=2)
         return ExecutionStatus.PLANNED, {
@@ -831,13 +903,21 @@ def execute_experiment(
                         score_b = _extract_pointwise_score(res_base.content)
                         score_c = _extract_pointwise_score(res_cand.content)
 
-                        diff = score_c - score_b
-                        if diff > 0.5:
-                            norm_winner = "CANDIDATE"
-                        elif diff < -0.5:
-                            norm_winner = "BASELINE"
+                        call_failed = (score_b is None) or (score_c is None)
+                        if call_failed:
+                            norm_winner = None
+                            outcome = "EXECUTION_FAILURE"
+                            diff_str = "N/A"
                         else:
-                            norm_winner = "TIE"
+                            diff = score_c - score_b
+                            diff_str = f"{diff:+.1f}"
+                            if diff > 0.5:
+                                norm_winner = "CANDIDATE"
+                            elif diff < -0.5:
+                                norm_winner = "BASELINE"
+                            else:
+                                norm_winner = "TIE"
+                            outcome = f"CONSISTENT_{norm_winner}_WIN" if norm_winner != "TIE" else "CONSISTENT_TIE"
 
                         case_run = ExperimentCaseRun(
                             run_id=f"{run_prefix}_pointwise",
@@ -846,11 +926,11 @@ def execute_experiment(
                             variant=variant.value,
                             orientation="pointwise",
                             repeat_index=rep,
-                            call_status=CallStatus.SUCCESS if score_b is not None and score_c is not None else CallStatus.PARSE_ERROR,
+                            call_status=CallStatus.SUCCESS if not call_failed else CallStatus.PARSE_ERROR,
                             raw_winner=norm_winner,
                             normalized_winner=norm_winner,
-                            confidence=1.0,
-                            rationale=f"Candidate score: {score_c:.1f}, Baseline score: {score_b:.1f} (delta={diff:+.1f})",
+                            confidence=1.0 if not call_failed else None,
+                            rationale=f"Candidate score: {score_c}, Baseline score: {score_b} (delta={diff_str})" if not call_failed else "Pointwise score extraction failed",
                             raw_content_sha256=hashlib.sha256(f"{res_base.content}\n{res_cand.content}".encode("utf-8")).hexdigest(),
                         )
                         runs_recorded.append(case_run)
@@ -861,7 +941,7 @@ def execute_experiment(
                             "repeat_index": rep,
                             "normalized_winner": norm_winner,
                             "is_unstable": False,
-                            "outcome": f"CONSISTENT_{norm_winner}_WIN" if norm_winner != "TIE" else "CONSISTENT_TIE",
+                            "outcome": outcome,
                         })
 
                     # Handle Variant B (Single Direction)
@@ -875,11 +955,25 @@ def execute_experiment(
                             norm_win = "BASELINE" if raw_win == "A" else ("CANDIDATE" if raw_win == "B" else "TIE")
                             status = CallStatus.SUCCESS
                             err_msg = None
-                        except Exception as exc:
+                            outcome = f"CONSISTENT_{norm_win}_WIN" if norm_win in ("CANDIDATE", "BASELINE") else "CONSISTENT_TIE"
+                        except JudgeParseError as exc:
                             raw_win = None
                             norm_win = None
                             status = CallStatus.PARSE_ERROR
                             err_msg = str(exc)
+                            outcome = "EXECUTION_FAILURE"
+                        except JudgeValidationError as exc:
+                            raw_win = None
+                            norm_win = None
+                            status = CallStatus.VALIDATION_ERROR
+                            err_msg = str(exc)
+                            outcome = "EXECUTION_FAILURE"
+                        except Exception as exc:
+                            raw_win = None
+                            norm_win = None
+                            status = CallStatus.PROVIDER_ERROR
+                            err_msg = str(exc)
+                            outcome = "EXECUTION_FAILURE"
 
                         case_run = ExperimentCaseRun(
                             run_id=f"{run_prefix}_fwd",
@@ -904,7 +998,7 @@ def execute_experiment(
                             "repeat_index": rep,
                             "normalized_winner": norm_win,
                             "is_unstable": False,
-                            "outcome": f"CONSISTENT_{norm_win}_WIN" if norm_win in ("CANDIDATE", "BASELINE") else "CONSISTENT_TIE",
+                            "outcome": outcome,
                         })
 
                     # Handle Variants C, D, E (Bidirectional)
@@ -919,30 +1013,66 @@ def execute_experiment(
                         req_rev = prompt_builder.build(eval_case, cand_ans, base_ans, rubric=use_rubric, prompt_version=prompt_ver)
                         res_rev = _call_with_retry(provider, req_rev, judge, max_retries)
 
+                        jdg_fwd = None
+                        fwd_err = None
+                        fwd_status = CallStatus.SUCCESS
                         try:
                             jdg_fwd = parser.parse(res_fwd.content, rubric=use_rubric)
                             fwd_raw = jdg_fwd.winner.value
                             fwd_norm = "BASELINE" if fwd_raw == "A" else ("CANDIDATE" if fwd_raw == "B" else "TIE")
+                        except JudgeParseError as exc:
+                            fwd_raw = None
+                            fwd_norm = None
+                            fwd_err = str(exc)
+                            fwd_status = CallStatus.PARSE_ERROR
+                        except JudgeValidationError as exc:
+                            fwd_raw = None
+                            fwd_norm = None
+                            fwd_err = str(exc)
+                            fwd_status = CallStatus.VALIDATION_ERROR
                         except Exception as exc:
                             fwd_raw = None
                             fwd_norm = None
+                            fwd_err = str(exc)
+                            fwd_status = CallStatus.PROVIDER_ERROR
 
+                        jdg_rev = None
+                        rev_err = None
+                        rev_status = CallStatus.SUCCESS
                         try:
                             jdg_rev = parser.parse(res_rev.content, rubric=use_rubric)
                             rev_raw = jdg_rev.winner.value
                             # In reverse, A is Candidate and B is Baseline
                             rev_norm = "CANDIDATE" if rev_raw == "A" else ("BASELINE" if rev_raw == "B" else "TIE")
+                        except JudgeParseError as exc:
+                            rev_raw = None
+                            rev_norm = None
+                            rev_err = str(exc)
+                            rev_status = CallStatus.PARSE_ERROR
+                        except JudgeValidationError as exc:
+                            rev_raw = None
+                            rev_norm = None
+                            rev_err = str(exc)
+                            rev_status = CallStatus.VALIDATION_ERROR
                         except Exception as exc:
                             rev_raw = None
                             rev_norm = None
+                            rev_err = str(exc)
+                            rev_status = CallStatus.PROVIDER_ERROR
 
-                        is_unstable = (fwd_norm != rev_norm) or (fwd_norm is None)
-                        if is_unstable:
-                            final_winner = "TIE"
-                            outcome = "POSITION_UNSTABLE"
+                        call_failed = (fwd_norm is None) or (rev_norm is None)
+                        if call_failed:
+                            is_unstable = False
+                            final_winner = None
+                            outcome = "EXECUTION_FAILURE"
                         else:
-                            final_winner = fwd_norm
-                            outcome = f"CONSISTENT_{final_winner}_WIN" if final_winner != "TIE" else "CONSISTENT_TIE"
+                            is_unstable = (fwd_norm != rev_norm)
+                            if is_unstable:
+                                final_winner = "TIE"
+                                outcome = "POSITION_UNSTABLE"
+                            else:
+                                final_winner = fwd_norm
+                                outcome = f"CONSISTENT_{final_winner}_WIN" if final_winner != "TIE" else "CONSISTENT_TIE"
 
                         run_fwd = ExperimentCaseRun(
                             run_id=f"{run_prefix}_fwd",
@@ -951,11 +1081,12 @@ def execute_experiment(
                             variant=variant.value,
                             orientation="forward",
                             repeat_index=rep,
-                            call_status=CallStatus.SUCCESS if fwd_raw else CallStatus.PARSE_ERROR,
+                            call_status=fwd_status,
                             raw_winner=fwd_raw,
                             normalized_winner=fwd_norm,
-                            confidence=jdg_fwd.confidence if fwd_raw else None,
-                            rationale=jdg_fwd.rationale if fwd_raw else None,
+                            confidence=jdg_fwd.confidence if jdg_fwd else None,
+                            rationale=jdg_fwd.rationale if jdg_fwd else None,
+                            error_message=fwd_err,
                             raw_content_sha256=hashlib.sha256(res_fwd.content.encode("utf-8")).hexdigest(),
                         )
                         run_rev = ExperimentCaseRun(
@@ -965,11 +1096,12 @@ def execute_experiment(
                             variant=variant.value,
                             orientation="reverse",
                             repeat_index=rep,
-                            call_status=CallStatus.SUCCESS if rev_raw else CallStatus.PARSE_ERROR,
+                            call_status=rev_status,
                             raw_winner=rev_raw,
                             normalized_winner=rev_norm,
-                            confidence=jdg_rev.confidence if rev_raw else None,
-                            rationale=jdg_rev.rationale if rev_raw else None,
+                            confidence=jdg_rev.confidence if jdg_rev else None,
+                            rationale=jdg_rev.rationale if jdg_rev else None,
+                            error_message=rev_err,
                             raw_content_sha256=hashlib.sha256(res_rev.content.encode("utf-8")).hexdigest(),
                         )
                         runs_recorded.extend([run_fwd, run_rev])
@@ -1001,6 +1133,14 @@ def execute_experiment(
     manifest_data["status"] = ExecutionStatus.COMPLETED.value
     manifest_data["completed_at"] = datetime.now(timezone.utc).isoformat()
     manifest_data["runs_recorded"] = len(runs_recorded)
+    manifest_data["software_version"] = "benizakura-0.1.0"
+    if allow_unfrozen:
+        manifest_data["is_fixture_mode"] = True
+        manifest_data["official_calibration"] = False
+        manifest_data["fixture_warning"] = (
+            "Executed under development fixture mode with unfrozen ground truth. "
+            "Invalid for official calibration evidence."
+        )
     with open(out_base / "manifest.json", "w", encoding="utf-8") as f:
         json.dump(manifest_data, f, indent=2)
 
@@ -1031,7 +1171,7 @@ def _call_with_retry(
     raise last_exc or JudgeProviderError("Provider call failed after retries.")
 
 
-def _extract_pointwise_score(content: str) -> float:
+def _extract_pointwise_score(content: str) -> Optional[float]:
     """Extract scalar 0-10 score from pointwise response."""
     try:
         data = json.loads(content)
@@ -1042,8 +1182,11 @@ def _extract_pointwise_score(content: str) -> float:
     # Fallback regex search for score
     match = re.search(r'"score"\s*:\s*([0-9\.]+)', content)
     if match:
-        return float(match.group(1))
-    return 5.0
+        try:
+            return float(match.group(1))
+        except (ValueError, TypeError):
+            pass
+    return None
 
 
 # ============================================================================
@@ -1093,9 +1236,11 @@ def summarize_experiment(
         config_key = f"{judge_id}_variant_{variant_code}"
 
         # Position bias statistics
-        total_pairs = len(decisions)
+        total_decisions = len(decisions)
+        failed_count = sum(1 for d in decisions if d.get("outcome") == "EXECUTION_FAILURE" or d.get("normalized_winner") is None)
+        valid_decisions = total_decisions - failed_count
         unstable_count = sum(1 for d in decisions if d.get("is_unstable", False))
-        unstable_rate = unstable_count / total_pairs if total_pairs > 0 else 0.0
+        unstable_rate = unstable_count / valid_decisions if valid_decisions > 0 else 0.0
 
         # Agreement with human ground truth (if available)
         judge_ratings: List[str] = []
@@ -1105,12 +1250,13 @@ def summarize_experiment(
 
         for d in decisions:
             cid = d["case_id"]
-            j_win = d.get("normalized_winner", "TIE")
+            j_win = d.get("normalized_winner")
             gt_case = gt_cases.get(cid, {})
             consensus = gt_case.get("consensus", {})
             h_win = consensus.get("winner") if consensus else None
 
-            if h_win:
+            # Do not convert failed executions into matches or ties; only compare when both valid
+            if h_win and j_win is not None:
                 judge_ratings.append(j_win)
                 human_ratings.append(h_win)
 
@@ -1127,7 +1273,9 @@ def summarize_experiment(
         summary_results["configurations"][config_key] = {
             "judge_id": judge_id,
             "variant": variant_code,
-            "total_decisions": total_pairs,
+            "total_decisions": total_decisions,
+            "failed_decisions": failed_count,
+            "valid_decisions": valid_decisions,
             "unstable_count": unstable_count,
             "position_instability_rate": unstable_rate,
             "human_evaluated_cases": len(judge_ratings),

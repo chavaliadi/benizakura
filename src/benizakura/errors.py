@@ -21,6 +21,16 @@ class JudgeProviderError(BenizakuraJudgeError):
     pass
 
 
+class JudgeTimeoutError(JudgeProviderError):
+    """Raised when an LLM provider request times out."""
+    pass
+
+
+class JudgeRateLimitError(JudgeProviderError):
+    """Raised when an LLM provider returns HTTP 429 Rate Limit."""
+    pass
+
+
 class CalibrationPrerequisiteError(Exception):
     """Raised when critical prerequisites for human-ground-truth calibration are not met."""
     pass

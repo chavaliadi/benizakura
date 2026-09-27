@@ -13,6 +13,8 @@ from benizakura.errors import (
     CalibrationPrerequisiteError,
     JudgeParseError,
     JudgeProviderError,
+    JudgeRateLimitError,
+    JudgeTimeoutError,
     JudgeValidationError,
 )
 from benizakura.experiment import (
@@ -403,3 +405,51 @@ def test_benchmark_hash_strictly_unmodified():
     assert actual_hash == EXPECTED_SHA, (
         f"CRITICAL: Benchmark hash mismatch! Expected {EXPECTED_SHA}, got {actual_hash}"
     )
+
+
+def test_prerequisite_pending_human_annotation_semantic_message():
+    """Verify that when human annotations are pending, it reports semantic status without corruption errors."""
+    prereq = check_calibration_prerequisites(
+        benchmark_path=BENCHMARK_PATH,
+        ground_truth_path=GROUND_TRUTH_PATH,
+        expected_benchmark_hash=EXPECTED_SHA,
+    )
+    assert prereq.is_ready is False
+    assert prereq.ground_truth_status == "PENDING_HUMAN_ANNOTATION"
+    assert "NOT AVAILABLE — human annotation pending" in prereq.summary()
+    assert len(prereq.blocking_reasons) == 1
+    assert "PENDING_HUMAN_ANNOTATION" in prereq.blocking_reasons[0]
+    assert not any("missing 'agreement_statistics' container" in r for r in prereq.blocking_reasons)
+
+
+def test_execute_live_blocked_with_allow_unfrozen(tmp_path):
+    """Verify that live API calls are strictly blocked when --allow-unfrozen fixture mode is active."""
+    plan = plan_experiment(
+        benchmark_source=BENCHMARK_PATH,
+        ground_truth_source=GROUND_TRUTH_PATH,
+        repeat_count=1,
+        is_dry_run=False,
+    )
+    with pytest.raises(CalibrationPrerequisiteError, match="CRITICAL SAFETY VIOLATION: Live provider execution"):
+        execute_experiment(
+            plan=plan,
+            output_dir=tmp_path / "experiments",
+            benchmark_source=BENCHMARK_PATH,
+            ground_truth_source=GROUND_TRUTH_PATH,
+            allow_unfrozen=True,
+            execute_live=True,
+            provider_factory=None,  # No mock factory -> live execution attempted
+        )
+
+
+def test_error_hierarchy_and_rate_limit_distinction():
+    """Verify error classes and CallStatus distinctions."""
+    assert issubclass(JudgeRateLimitError, JudgeProviderError)
+    assert issubclass(JudgeTimeoutError, JudgeProviderError)
+    assert issubclass(JudgeParseError, Exception)
+    assert issubclass(JudgeValidationError, Exception)
+    assert CallStatus.RATE_LIMIT == "RATE_LIMIT"
+    assert CallStatus.TIMEOUT == "TIMEOUT"
+    assert CallStatus.PARSE_ERROR == "PARSE_ERROR"
+    assert CallStatus.VALIDATION_ERROR == "VALIDATION_ERROR"
+    assert CallStatus.PROVIDER_ERROR == "PROVIDER_ERROR"

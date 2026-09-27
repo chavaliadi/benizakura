@@ -29,6 +29,8 @@ from benizakura.errors import (
     ExperimentError,
     JudgeParseError,
     JudgeProviderError,
+    JudgeRateLimitError,
+    JudgeTimeoutError,
     JudgeValidationError,
 )
 from benizakura.judge import (
@@ -113,6 +115,11 @@ __all__ = [
     "GroundTruthArtifact",
     "GroundTruthStatus",
     "JudgeConfig",
+    "JudgeParseError",
+    "JudgeProviderError",
+    "JudgeRateLimitError",
+    "JudgeTimeoutError",
+    "JudgeValidationError",
     "LLMJudgeProvider",
     "MockExperimentJudgeProvider",
     "OpenAIJudgeProvider",
