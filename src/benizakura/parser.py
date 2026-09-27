@@ -75,10 +75,10 @@ class JudgeResponseParser:
         winner = PairwiseWinner(winner_clean)
 
         # 2. Validate rationale
-        rationale = data.get("rationale") or data.get("reason")
+        rationale = data.get("rationale") or data.get("overall_rationale") or data.get("reason")
         if not isinstance(rationale, str) or not rationale.strip():
             raise JudgeValidationError(
-                "Missing or empty required field 'rationale' (or 'reason') in judge response."
+                "Missing or empty required field 'rationale' (or 'overall_rationale'/'reason') in judge response."
             )
         rationale = rationale.strip()
 

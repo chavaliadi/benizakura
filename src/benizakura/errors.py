@@ -19,3 +19,13 @@ class JudgeValidationError(BenizakuraJudgeError):
 class JudgeProviderError(BenizakuraJudgeError):
     """Raised when the underlying model provider fails to generate a response."""
     pass
+
+
+class CalibrationPrerequisiteError(Exception):
+    """Raised when critical prerequisites for human-ground-truth calibration are not met."""
+    pass
+
+
+class ExperimentError(Exception):
+    """Raised when an experiment execution or configuration fails."""
+    pass

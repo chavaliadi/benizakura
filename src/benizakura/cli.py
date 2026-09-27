@@ -615,12 +615,169 @@ def _run_benchmark_cli(sub_argv: list[str]) -> int:
     return 1
 
 
+def _run_experiment_cli(sub_argv: list[str]) -> int:
+    from benizakura.experiment import (
+        DEFAULT_JUDGE_A,
+        DEFAULT_JUDGE_B,
+        ExperimentVariant,
+        check_calibration_prerequisites,
+        execute_experiment,
+        plan_experiment,
+        summarize_experiment,
+    )
+
+    exp_parser = argparse.ArgumentParser(
+        prog="benizakura experiment",
+        description="LLM judge calibration experiment planning, prerequisite validation, and execution.",
+    )
+    subparsers = exp_parser.add_subparsers(dest="experiment_command", required=True)
+
+    # plan
+    plan_p = subparsers.add_parser("plan", help="Generate declarative experiment workload plan and request estimates.")
+    plan_p.add_argument("--benchmark", type=Path, default=Path("evals/conquer/benchmark_v1.json"), help="Benchmark file.")
+    plan_p.add_argument("--ground-truth", type=Path, default=Path("evals/conquer/ground_truth_v1.json"), help="Ground truth file.")
+    plan_p.add_argument("--experiment-id", type=str, default="calibration_v1", help="Experiment identifier.")
+    plan_p.add_argument("--repeats", type=int, default=1, help="Repeat count.")
+    plan_p.add_argument("--json", action="store_true", help="Output machine-readable JSON.")
+
+    # validate
+    val_p = subparsers.add_parser("validate", help="Check calibration prerequisites (frozen ground truth, kappa >= 0.60, hash).")
+    val_p.add_argument("--benchmark", type=Path, default=Path("evals/conquer/benchmark_v1.json"), help="Benchmark file.")
+    val_p.add_argument("--ground-truth", type=Path, default=Path("evals/conquer/ground_truth_v1.json"), help="Ground truth file.")
+
+    # run
+    run_p = subparsers.add_parser("run", help="Run calibration experiment (requires --execute for live calls; default: dry-run).")
+    run_p.add_argument("experiment_id", nargs="?", default="calibration_v1", help="Experiment identifier.")
+    run_p.add_argument("--benchmark", type=Path, default=Path("evals/conquer/benchmark_v1.json"), help="Benchmark file.")
+    run_p.add_argument("--ground-truth", type=Path, default=Path("evals/conquer/ground_truth_v1.json"), help="Ground truth file.")
+    run_p.add_argument("--output-dir", type=Path, default=Path("evals/conquer/experiments"), help="Experiments output directory.")
+    run_p.add_argument("--repeats", type=int, default=1, help="Repeat count.")
+    run_p.add_argument("--execute", action="store_true", help="Explicit confirmation flag to execute live model API calls.")
+    run_p.add_argument("--dry-run", action="store_true", help="Explicit dry-run simulation mode.")
+    run_p.add_argument("--allow-unfrozen", action="store_true", help="Allow software infrastructure tests with unfrozen ground truth.")
+
+    # status
+    stat_p = subparsers.add_parser("status", help="Inspect status and progress of an experiment run.")
+    stat_p.add_argument("experiment_id", nargs="?", default="calibration_v1", help="Experiment identifier.")
+    stat_p.add_argument("--experiments-dir", type=Path, default=Path("evals/conquer/experiments"), help="Experiments directory.")
+
+    # summarize
+    sum_p = subparsers.add_parser("summarize", help="Compile and display statistical summary and hypothesis metrics.")
+    sum_p.add_argument("experiment_id", nargs="?", default="calibration_v1", help="Experiment identifier.")
+    sum_p.add_argument("--experiments-dir", type=Path, default=Path("evals/conquer/experiments"), help="Experiments directory.")
+    sum_p.add_argument("--benchmark", type=Path, default=Path("evals/conquer/benchmark_v1.json"), help="Benchmark file.")
+    sum_p.add_argument("--ground-truth", type=Path, default=Path("evals/conquer/ground_truth_v1.json"), help="Ground truth file.")
+    sum_p.add_argument("--json", action="store_true", help="Output as machine-readable JSON.")
+
+    args = exp_parser.parse_args(sub_argv)
+
+    if args.experiment_command == "plan":
+        plan = plan_experiment(
+            benchmark_source=args.benchmark,
+            ground_truth_source=args.ground_truth,
+            experiment_id=args.experiment_id,
+            repeat_count=args.repeats,
+            is_dry_run=True,
+        )
+        if args.json:
+            print(json.dumps(plan.to_dict(), indent=2))
+        else:
+            print(plan.summary())
+        return 0
+
+    elif args.experiment_command == "validate":
+        res = check_calibration_prerequisites(
+            benchmark_path=args.benchmark,
+            ground_truth_path=args.ground_truth,
+        )
+        print(res.summary())
+        return 0 if res.is_ready else 1
+
+    elif args.experiment_command == "run":
+        is_dry_run = not args.execute
+        if is_dry_run:
+            print("DRY RUN — no provider calls made. (Use --execute for live API calls)\n")
+
+        plan = plan_experiment(
+            benchmark_source=args.benchmark,
+            ground_truth_source=args.ground_truth,
+            experiment_id=args.experiment_id,
+            repeat_count=args.repeats,
+            is_dry_run=is_dry_run,
+        )
+
+        try:
+            status, info = execute_experiment(
+                plan=plan,
+                output_dir=args.output_dir,
+                benchmark_source=args.benchmark,
+                ground_truth_source=args.ground_truth,
+                allow_unfrozen=args.allow_unfrozen,
+                execute_live=args.execute,
+            )
+            print(f"Experiment execution finished: {status.value}")
+            for k, v in info.items():
+                print(f"  {k}: {v}")
+            return 0
+        except Exception as exc:
+            print(f"Execution Error: {exc}", file=sys.stderr)
+            return 1
+
+    elif args.experiment_command == "status":
+        manifest_file = args.experiments_dir / args.experiment_id / "manifest.json"
+        if not manifest_file.is_file():
+            print(f"Experiment manifest not found at: {manifest_file}", file=sys.stderr)
+            return 1
+        with open(manifest_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        print(f"Experiment Status: {args.experiment_id}")
+        print("================================")
+        print(f"Status:          {data.get('status')}")
+        print(f"Benchmark:       {data.get('benchmark_id')} ({data.get('case_count')} cases)")
+        print(f"Total Requests:  {data.get('total_requests')}")
+        print(f"Runs Recorded:   {data.get('runs_recorded', 0)}")
+        print(f"Created At:      {data.get('created_at')}")
+        print(f"Completed At:    {data.get('completed_at')}")
+        return 0
+
+    elif args.experiment_command == "summarize":
+        try:
+            summary = summarize_experiment(
+                experiment_id=args.experiment_id,
+                output_dir=args.experiments_dir,
+                benchmark_source=args.benchmark,
+                ground_truth_source=args.ground_truth,
+            )
+            if args.json:
+                print(json.dumps(summary, indent=2))
+            else:
+                print(f"Experiment Summary: {args.experiment_id}")
+                print("==================================")
+                for cfg_key, cfg_data in summary.get("configurations", {}).items():
+                    print(f"\nConfiguration: {cfg_key}")
+                    print(f"  Decisions:       {cfg_data.get('total_decisions')}")
+                    print(f"  Unstable Count:  {cfg_data.get('unstable_count')} ({cfg_data.get('position_instability_rate', 0.0):.1%})")
+                    if cfg_data.get("human_evaluated_cases", 0) > 0:
+                        print(f"  Human Agreement: {cfg_data.get('raw_human_agreement', 0.0):.1%} (Cohen's kappa: {cfg_data.get('cohens_kappa', 0.0):.2f})")
+                        print(f"  False Passes:    {cfg_data.get('false_pass_count')}")
+                        print(f"  False Regress.:  {cfg_data.get('false_regression_count')}")
+            return 0
+        except Exception as exc:
+            print(f"Summary Error: {exc}", file=sys.stderr)
+            return 1
+
+    return 1
+
+
 def main(argv: list[str] | None = None) -> int:
     if argv is None:
         argv = sys.argv[1:]
 
     if argv and argv[0] == "benchmark":
         return _run_benchmark_cli(argv[1:])
+
+    if argv and argv[0] == "experiment":
+        return _run_experiment_cli(argv[1:])
 
     parser = argparse.ArgumentParser(
         prog="benizakura",
