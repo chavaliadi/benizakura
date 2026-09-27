@@ -1,0 +1,15 @@
+{
+  "ground_truth_id": "conquer-ground-truth-v1",
+  "benchmark_id": "conquer-benchmark-v1",
+  "benchmark_version": "1.0.0",
+  "benchmark_sha256": "aaf9f66360620603d0144796dcb954345a6d28d2b26e3a1d032c7b6cd4df9314",
+  "schema_version": "1.0.0",
+  "status": "PENDING_HUMAN_ANNOTATION",
+  "human_labels": "PENDING",
+  "case_count": 30,
+  "sha256": "7575c3febf16b7a5793eb71428b58836acbae7981b5363f80ba03d0d6205daf0",
+  "cohens_kappa": null,
+  "production_ci_gating": "DISABLED",
+  "created_at": "2026-09-27T12:00:00Z",
+  "frozen_at": null
+}

@@ -98,6 +98,191 @@ def _run_benchmark_cli(sub_argv: list[str]) -> int:
         help="Random seed for deterministic presentation swapping.",
     )
 
+    # annotation-validate
+    val_ann_parser = subparsers.add_parser("annotation-validate", help="Validate annotator submissions against schema and benchmark.")
+    val_ann_parser.add_argument(
+        "path",
+        type=Path,
+        nargs="?",
+        default=Path("evals/conquer/annotations/submissions"),
+        help="Path to submissions JSON file or directory (default: evals/conquer/annotations/submissions).",
+    )
+    val_ann_parser.add_argument(
+        "--benchmark",
+        type=Path,
+        default=Path("evals/conquer/benchmark_v1.json"),
+        help="Path to benchmark JSON (default: evals/conquer/benchmark_v1.json).",
+    )
+    val_ann_parser.add_argument(
+        "--allowed-annotators",
+        type=str,
+        default=None,
+        help="Comma-separated list of authorized annotator IDs.",
+    )
+
+    # annotation-status
+    stat_ann_parser = subparsers.add_parser("annotation-status", help="Check progress and coverage of human annotations.")
+    stat_ann_parser.add_argument(
+        "path",
+        type=Path,
+        nargs="?",
+        default=Path("evals/conquer/annotations/submissions"),
+        help="Path to submissions JSON file or directory (default: evals/conquer/annotations/submissions).",
+    )
+    stat_ann_parser.add_argument(
+        "--benchmark",
+        type=Path,
+        default=Path("evals/conquer/benchmark_v1.json"),
+        help="Path to benchmark JSON (default: evals/conquer/benchmark_v1.json).",
+    )
+
+    # agreement
+    agr_parser = subparsers.add_parser("agreement", help="Compute human-vs-human Cohen's kappa and calibration gate decision.")
+    agr_parser.add_argument(
+        "--submissions-dir",
+        type=Path,
+        default=Path("evals/conquer/annotations/submissions"),
+        help="Directory containing annotator submissions.",
+    )
+    agr_parser.add_argument(
+        "--ann1",
+        type=Path,
+        default=None,
+        help="Path to Annotator 1 submissions file or directory.",
+    )
+    agr_parser.add_argument(
+        "--ann2",
+        type=Path,
+        default=None,
+        help="Path to Annotator 2 submissions file or directory.",
+    )
+    agr_parser.add_argument(
+        "--benchmark",
+        type=Path,
+        default=Path("evals/conquer/benchmark_v1.json"),
+        help="Path to benchmark JSON (default: evals/conquer/benchmark_v1.json).",
+    )
+    agr_parser.add_argument(
+        "--key",
+        type=Path,
+        default=Path("evals/conquer/annotations/blinding_key_v1.json"),
+        help="Path to private blinding key JSON (default: evals/conquer/annotations/blinding_key_v1.json).",
+    )
+    agr_parser.add_argument(
+        "--threshold",
+        type=float,
+        default=0.60,
+        help="Calibration gate Cohen's kappa threshold (default: 0.60).",
+    )
+    agr_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output results as machine-readable JSON.",
+    )
+
+    # consensus
+    cons_parser = subparsers.add_parser("consensus", help="Resolve disagreements and generate consensus ground truth.")
+    cons_parser.add_argument(
+        "--submissions-dir",
+        type=Path,
+        default=Path("evals/conquer/annotations/submissions"),
+        help="Directory containing annotator submissions.",
+    )
+    cons_parser.add_argument(
+        "--ann1",
+        type=Path,
+        default=None,
+        help="Path to Annotator 1 submissions.",
+    )
+    cons_parser.add_argument(
+        "--ann2",
+        type=Path,
+        default=None,
+        help="Path to Annotator 2 submissions.",
+    )
+    cons_parser.add_argument(
+        "--benchmark",
+        type=Path,
+        default=Path("evals/conquer/benchmark_v1.json"),
+        help="Path to benchmark JSON.",
+    )
+    cons_parser.add_argument(
+        "--key",
+        type=Path,
+        default=Path("evals/conquer/annotations/blinding_key_v1.json"),
+        help="Path to blinding key JSON.",
+    )
+    cons_parser.add_argument(
+        "--adjudications",
+        type=Path,
+        default=None,
+        help="Path to adjudications JSON file.",
+    )
+    cons_parser.add_argument(
+        "--out",
+        type=Path,
+        default=Path("evals/conquer/consensus_v1.json"),
+        help="Output path for consensus cases JSON.",
+    )
+    cons_parser.add_argument(
+        "--export-adjudication-template",
+        type=Path,
+        default=None,
+        help="Write template file containing all disagreement cases awaiting adjudication.",
+    )
+
+    # ground-truth
+    gt_parser = subparsers.add_parser("ground-truth", help="Ground-truth artifact inspection, compilation, and freezing.")
+    gt_parser.add_argument(
+        "action",
+        choices=["status", "verify", "freeze", "compile"],
+        nargs="?",
+        default="status",
+        help="Action: status, verify, freeze, or compile (default: status).",
+    )
+    gt_parser.add_argument(
+        "--path",
+        type=Path,
+        default=Path("evals/conquer/ground_truth_v1.json"),
+        help="Path to ground truth JSON (default: evals/conquer/ground_truth_v1.json).",
+    )
+    gt_parser.add_argument(
+        "--benchmark",
+        type=Path,
+        default=Path("evals/conquer/benchmark_v1.json"),
+        help="Path to benchmark JSON.",
+    )
+    gt_parser.add_argument(
+        "--manifest",
+        type=Path,
+        default=Path("evals/conquer/ground_truth_v1.manifest.json"),
+        help="Path to ground truth manifest.",
+    )
+    gt_parser.add_argument(
+        "--sha256",
+        type=Path,
+        default=Path("evals/conquer/ground_truth_v1.sha256"),
+        help="Path to ground truth .sha256 file.",
+    )
+    gt_parser.add_argument(
+        "--submissions-dir",
+        type=Path,
+        default=Path("evals/conquer/annotations/submissions"),
+        help="Path to submissions directory (for compile).",
+    )
+    gt_parser.add_argument(
+        "--key",
+        type=Path,
+        default=Path("evals/conquer/annotations/blinding_key_v1.json"),
+        help="Path to blinding key JSON (for compile).",
+    )
+    gt_parser.add_argument(
+        "--adjudications",
+        type=Path,
+        default=None,
+        help="Path to adjudications JSON (for compile).",
+    )
+
     args = bench_parser.parse_args(sub_argv)
 
     if args.benchmark_command == "validate":
@@ -129,6 +314,303 @@ def _run_benchmark_cli(sub_argv: list[str]) -> int:
         print(f"  - Blinded Tasks: {args.out_tasks}")
         print(f"  - Private Key:   {args.out_key}")
         return 0
+
+    elif args.benchmark_command == "annotation-validate":
+        from benizakura.benchmark import load_benchmark_data
+        from benizakura.calibration import load_annotator_submissions, validate_submissions_batch
+
+        bench_data = load_benchmark_data(args.benchmark)
+        cases = bench_data.get("cases", [])
+        allowed_set = set(args.allowed_annotators.split(",")) if args.allowed_annotators else None
+
+        try:
+            submissions = load_annotator_submissions(args.path)
+        except Exception as exc:
+            print(f"Failed to load submissions: {exc}", file=sys.stderr)
+            return 1
+
+        is_valid, errors = validate_submissions_batch(
+            [s.to_dict() for s in submissions],
+            cases,
+            allowed_annotators=allowed_set,
+        )
+
+        print(f"Annotation Validation Report")
+        print(f"============================")
+        print(f"Submissions Checked: {len(submissions)}")
+        print(f"Status:              {'VALID' if is_valid else 'INVALID'}")
+        if errors:
+            print(f"\nErrors ({len(errors)}):")
+            for err in errors:
+                print(f"  [ERROR] {err}")
+            return 1
+        print("All submissions passed schema, criteria, and leakage validation.")
+        return 0
+
+    elif args.benchmark_command == "annotation-status":
+        from benizakura.benchmark import load_benchmark_data
+        from benizakura.calibration import load_annotator_submissions
+
+        bench_data = load_benchmark_data(args.benchmark)
+        cases = bench_data.get("cases", [])
+        all_case_ids = {c["case_id"] for c in cases}
+
+        if not args.path.exists():
+            print(f"Annotation Status: No submissions found at {args.path}")
+            print(f"Total Benchmark Cases: {len(all_case_ids)}")
+            return 0
+
+        submissions = load_annotator_submissions(args.path)
+        by_annotator: dict[str, set[str]] = {}
+        for s in submissions:
+            by_annotator.setdefault(s.annotator_id, set()).add(s.case_id)
+
+        print("Human Annotation Status")
+        print("-----------------------")
+        print(f"Benchmark Cases: {len(all_case_ids)}")
+        print(f"Active Annotators: {len(by_annotator)}")
+        print()
+
+        for ann_id, cids in sorted(by_annotator.items()):
+            missing = all_case_ids - cids
+            pct = (len(cids) / len(all_case_ids)) * 100 if all_case_ids else 0.0
+            print(f"  - {ann_id}: {len(cids)}/{len(all_case_ids)} ({pct:.1f}%)")
+            if missing and len(missing) <= 5:
+                print(f"      Missing: {', '.join(sorted(missing))}")
+            elif missing:
+                print(f"      Missing: {len(missing)} cases")
+
+        if len(by_annotator) >= 2:
+            shared = set.intersection(*by_annotator.values())
+            print(f"\nCases evaluated by all active annotators: {len(shared)}/{len(all_case_ids)}")
+
+        return 0
+
+    elif args.benchmark_command == "agreement":
+        from benizakura.benchmark import load_benchmark_data
+        from benizakura.calibration import (
+            calculate_human_agreement,
+            load_annotator_submissions,
+        )
+
+        bench_data = load_benchmark_data(args.benchmark)
+        with open(args.key, "r", encoding="utf-8") as f:
+            key_data = json.load(f)
+
+        if args.ann1 and args.ann2:
+            subs_1 = load_annotator_submissions(args.ann1)
+            subs_2 = load_annotator_submissions(args.ann2)
+        else:
+            all_subs = load_annotator_submissions(args.submissions_dir)
+            by_ann: dict[str, list] = {}
+            for s in all_subs:
+                by_ann.setdefault(s.annotator_id, []).append(s)
+            if len(by_ann) < 2:
+                print(
+                    f"Error: Found only {len(by_ann)} annotator(s) in {args.submissions_dir}. "
+                    "Agreement analysis requires two independent annotators.",
+                    file=sys.stderr,
+                )
+                return 1
+            ann_keys = sorted(by_ann.keys())
+            subs_1 = by_ann[ann_keys[0]]
+            subs_2 = by_ann[ann_keys[1]]
+
+        agreement_report = calculate_human_agreement(
+            subs_1,
+            subs_2,
+            key_data,
+            bench_data,
+            threshold=args.threshold,
+        )
+
+        if args.json:
+            print(json.dumps(agreement_report.to_dict(), indent=2))
+        else:
+            print(agreement_report.summary())
+
+        return 0 if agreement_report.calibration_gate == "PASS" else 1
+
+    elif args.benchmark_command == "consensus":
+        from benizakura.benchmark import load_benchmark_data
+        from benizakura.calibration import (
+            apply_adjudications,
+            create_adjudication_item,
+            load_annotator_submissions,
+        )
+
+        bench_data = load_benchmark_data(args.benchmark)
+        with open(args.key, "r", encoding="utf-8") as f:
+            key_data = json.load(f)
+
+        if args.ann1 and args.ann2:
+            subs_1 = load_annotator_submissions(args.ann1)
+            subs_2 = load_annotator_submissions(args.ann2)
+        else:
+            all_subs = load_annotator_submissions(args.submissions_dir)
+            by_ann: dict[str, list] = {}
+            for s in all_subs:
+                by_ann.setdefault(s.annotator_id, []).append(s)
+            if len(by_ann) < 2:
+                print(f"Error: Consensus requires two independent annotator sets.", file=sys.stderr)
+                return 1
+            ann_keys = sorted(by_ann.keys())
+            subs_1 = by_ann[ann_keys[0]]
+            subs_2 = by_ann[ann_keys[1]]
+
+        consensus_cases, pending_errors = apply_adjudications(
+            subs_1,
+            subs_2,
+            key_data,
+            bench_data,
+            adjudication_records=args.adjudications,
+        )
+
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        with open(args.out, "w", encoding="utf-8") as f:
+            json.dump({"consensus_cases": consensus_cases}, f, indent=2)
+
+        print(f"Generated consensus records ({len(consensus_cases)} cases): {args.out}")
+        if pending_errors:
+            print(f"\nPending Disagreements / Errors ({len(pending_errors)}):")
+            for err in pending_errors:
+                print(f"  [PENDING] {err}")
+
+            if args.export_adjudication_template:
+                dict_1 = {s.case_id: s for s in subs_1}
+                dict_2 = {s.case_id: s for s in subs_2}
+                mappings = key_data.get("mappings", {})
+                templates = []
+                for c in consensus_cases:
+                    if c["status"] == "SUBMITTED":
+                        cid = c["case_id"]
+                        templates.append(create_adjudication_item(cid, dict_1[cid], dict_2[cid], mappings[cid]))
+                args.export_adjudication_template.parent.mkdir(parents=True, exist_ok=True)
+                with open(args.export_adjudication_template, "w", encoding="utf-8") as f:
+                    json.dump({"adjudications": templates}, f, indent=2)
+                print(f"Wrote adjudication review template to: {args.export_adjudication_template}")
+
+            return 1
+        return 0
+
+    elif args.benchmark_command == "ground-truth":
+        from benizakura.benchmark import compute_benchmark_hash, load_benchmark_data
+        from benizakura.calibration import (
+            apply_adjudications,
+            calculate_human_agreement,
+            freeze_ground_truth_artifact,
+            GroundTruthArtifact,
+            GroundTruthStatus,
+            load_annotator_submissions,
+        )
+
+        if args.action == "status":
+            if not args.path.exists():
+                print(f"Ground-truth file does not exist at {args.path}")
+                return 1
+            with open(args.path, "r", encoding="utf-8") as f:
+                gt_data = json.load(f)
+            print("Ground-Truth Status")
+            print("-------------------")
+            print(f"Path:            {args.path}")
+            print(f"Benchmark ID:    {gt_data.get('benchmark_id')}")
+            print(f"Benchmark SHA:   {gt_data.get('benchmark_sha256')}")
+            print(f"Status:          {gt_data.get('status')}")
+            print(f"Human Labels:    {gt_data.get('human_labels')}")
+            print(f"Cases Total:     {gt_data.get('case_count')}")
+            stats = gt_data.get("agreement_statistics")
+            if stats:
+                print(f"Cohen's kappa:   {stats.get('cohens_kappa')}")
+                print(f"Raw agreement:   {stats.get('raw_agreement')}")
+            return 0
+
+        elif args.action == "verify":
+            if not args.path.exists():
+                print(f"Error: Ground truth file not found at {args.path}", file=sys.stderr)
+                return 1
+            with open(args.path, "r", encoding="utf-8") as f:
+                gt_data = json.load(f)
+            expected_benchmark_hash = compute_benchmark_hash(args.benchmark)
+            if gt_data.get("benchmark_sha256") != expected_benchmark_hash:
+                print(
+                    f"Integrity Error: Ground truth references benchmark hash {gt_data.get('benchmark_sha256')}, "
+                    f"but benchmark hash is {expected_benchmark_hash}.",
+                    file=sys.stderr,
+                )
+                return 1
+            print(f"Ground-truth verified against benchmark {args.benchmark} (SHA256 matches: {expected_benchmark_hash}).")
+            return 0
+
+        elif args.action == "compile":
+            bench_data = load_benchmark_data(args.benchmark)
+            bench_hash = compute_benchmark_hash(args.benchmark)
+            with open(args.key, "r", encoding="utf-8") as f:
+                key_data = json.load(f)
+
+            all_subs = load_annotator_submissions(args.submissions_dir)
+            by_ann: dict[str, list] = {}
+            for s in all_subs:
+                by_ann.setdefault(s.annotator_id, []).append(s)
+
+            if len(by_ann) < 2:
+                print("Error: Compiling ground truth requires at least 2 independent annotator submission sets.", file=sys.stderr)
+                return 1
+
+            ann_keys = sorted(by_ann.keys())
+            subs_1 = by_ann[ann_keys[0]]
+            subs_2 = by_ann[ann_keys[1]]
+
+            agreement_report = calculate_human_agreement(subs_1, subs_2, key_data, bench_data)
+            consensus_cases, pending_errors = apply_adjudications(
+                subs_1, subs_2, key_data, bench_data, adjudication_records=args.adjudications
+            )
+
+            status = (
+                GroundTruthStatus.ADJUDICATION_COMPLETE
+                if not pending_errors and agreement_report.calibration_gate == "PASS"
+                else GroundTruthStatus.HUMAN_AGREEMENT_MEASURED
+            )
+
+            gt_artifact = GroundTruthArtifact(
+                benchmark_id=bench_data.get("benchmark_id", "conquer-benchmark-v1"),
+                benchmark_version=bench_data.get("version", "1.0.0"),
+                benchmark_sha256=bench_hash,
+                schema_version="1.0.0",
+                status=status,
+                case_count=len(consensus_cases),
+                human_labels="PENDING" if pending_errors else "CONSENSUS_COMPLETE",
+                agreement_statistics=agreement_report.to_dict(),
+                cases=consensus_cases,
+                created_at=datetime.now(timezone.utc).isoformat(),
+                frozen_at=None,
+            )
+
+            args.path.parent.mkdir(parents=True, exist_ok=True)
+            with open(args.path, "w", encoding="utf-8") as f:
+                json.dump(gt_artifact.to_dict(), f, indent=2)
+
+            print(f"Compiled ground-truth artifact to {args.path} (status: {status})")
+            if pending_errors:
+                print(f"Notice: {len(pending_errors)} pending cases/adjudications remain.")
+            return 0
+
+        elif args.action == "freeze":
+            try:
+                artifact, sha = freeze_ground_truth_artifact(
+                    artifact_source=args.path,
+                    benchmark_source=args.benchmark,
+                    out_json=args.path,
+                    out_manifest=args.manifest,
+                    out_sha256=args.sha256,
+                )
+                print(f"Successfully froze ground truth artifact:")
+                print(f"  Artifact:  {args.path}")
+                print(f"  Manifest:  {args.manifest}")
+                print(f"  SHA-256:   {sha}")
+                return 0
+            except Exception as exc:
+                print(f"Error freezing ground truth: {exc}", file=sys.stderr)
+                return 1
 
     return 1
 

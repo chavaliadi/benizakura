@@ -1,0 +1,256 @@
+{
+  "agreement_statistics": null,
+  "benchmark_id": "conquer-benchmark-v1",
+  "benchmark_sha256": "aaf9f66360620603d0144796dcb954345a6d28d2b26e3a1d032c7b6cd4df9314",
+  "benchmark_version": "1.0.0",
+  "case_count": 30,
+  "cases": [
+    {
+      "annotator_1": null,
+      "annotator_2": null,
+      "case_id": "dsa-001",
+      "category": "DSA",
+      "consensus": null,
+      "status": "PENDING"
+    },
+    {
+      "annotator_1": null,
+      "annotator_2": null,
+      "case_id": "dsa-002",
+      "category": "DSA",
+      "consensus": null,
+      "status": "PENDING"
+    },
+    {
+      "annotator_1": null,
+      "annotator_2": null,
+      "case_id": "dsa-003",
+      "category": "DSA",
+      "consensus": null,
+      "status": "PENDING"
+    },
+    {
+      "annotator_1": null,
+      "annotator_2": null,
+      "case_id": "dsa-004",
+      "category": "DSA",
+      "consensus": null,
+      "status": "PENDING"
+    },
+    {
+      "annotator_1": null,
+      "annotator_2": null,
+      "case_id": "dsa-005",
+      "category": "DSA",
+      "consensus": null,
+      "status": "PENDING"
+    },
+    {
+      "annotator_1": null,
+      "annotator_2": null,
+      "case_id": "dsa-006",
+      "category": "DSA",
+      "consensus": null,
+      "status": "PENDING"
+    },
+    {
+      "annotator_1": null,
+      "annotator_2": null,
+      "case_id": "sys-001",
+      "category": "SYSTEM_DESIGN",
+      "consensus": null,
+      "status": "PENDING"
+    },
+    {
+      "annotator_1": null,
+      "annotator_2": null,
+      "case_id": "sys-002",
+      "category": "SYSTEM_DESIGN",
+      "consensus": null,
+      "status": "PENDING"
+    },
+    {
+      "annotator_1": null,
+      "annotator_2": null,
+      "case_id": "sys-003",
+      "category": "SYSTEM_DESIGN",
+      "consensus": null,
+      "status": "PENDING"
+    },
+    {
+      "annotator_1": null,
+      "annotator_2": null,
+      "case_id": "sys-004",
+      "category": "SYSTEM_DESIGN",
+      "consensus": null,
+      "status": "PENDING"
+    },
+    {
+      "annotator_1": null,
+      "annotator_2": null,
+      "case_id": "sys-005",
+      "category": "SYSTEM_DESIGN",
+      "consensus": null,
+      "status": "PENDING"
+    },
+    {
+      "annotator_1": null,
+      "annotator_2": null,
+      "case_id": "sys-006",
+      "category": "SYSTEM_DESIGN",
+      "consensus": null,
+      "status": "PENDING"
+    },
+    {
+      "annotator_1": null,
+      "annotator_2": null,
+      "case_id": "sys-007",
+      "category": "SYSTEM_DESIGN",
+      "consensus": null,
+      "status": "PENDING"
+    },
+    {
+      "annotator_1": null,
+      "annotator_2": null,
+      "case_id": "sys-008",
+      "category": "SYSTEM_DESIGN",
+      "consensus": null,
+      "status": "PENDING"
+    },
+    {
+      "annotator_1": null,
+      "annotator_2": null,
+      "case_id": "backend-001",
+      "category": "BACKEND",
+      "consensus": null,
+      "status": "PENDING"
+    },
+    {
+      "annotator_1": null,
+      "annotator_2": null,
+      "case_id": "backend-002",
+      "category": "BACKEND",
+      "consensus": null,
+      "status": "PENDING"
+    },
+    {
+      "annotator_1": null,
+      "annotator_2": null,
+      "case_id": "backend-003",
+      "category": "BACKEND",
+      "consensus": null,
+      "status": "PENDING"
+    },
+    {
+      "annotator_1": null,
+      "annotator_2": null,
+      "case_id": "backend-004",
+      "category": "BACKEND",
+      "consensus": null,
+      "status": "PENDING"
+    },
+    {
+      "annotator_1": null,
+      "annotator_2": null,
+      "case_id": "backend-005",
+      "category": "BACKEND",
+      "consensus": null,
+      "status": "PENDING"
+    },
+    {
+      "annotator_1": null,
+      "annotator_2": null,
+      "case_id": "backend-006",
+      "category": "BACKEND",
+      "consensus": null,
+      "status": "PENDING"
+    },
+    {
+      "annotator_1": null,
+      "annotator_2": null,
+      "case_id": "frontend-001",
+      "category": "FRONTEND",
+      "consensus": null,
+      "status": "PENDING"
+    },
+    {
+      "annotator_1": null,
+      "annotator_2": null,
+      "case_id": "frontend-002",
+      "category": "FRONTEND",
+      "consensus": null,
+      "status": "PENDING"
+    },
+    {
+      "annotator_1": null,
+      "annotator_2": null,
+      "case_id": "frontend-003",
+      "category": "FRONTEND",
+      "consensus": null,
+      "status": "PENDING"
+    },
+    {
+      "annotator_1": null,
+      "annotator_2": null,
+      "case_id": "frontend-004",
+      "category": "FRONTEND",
+      "consensus": null,
+      "status": "PENDING"
+    },
+    {
+      "annotator_1": null,
+      "annotator_2": null,
+      "case_id": "behavioral-001",
+      "category": "BEHAVIORAL",
+      "consensus": null,
+      "status": "PENDING"
+    },
+    {
+      "annotator_1": null,
+      "annotator_2": null,
+      "case_id": "behavioral-002",
+      "category": "BEHAVIORAL",
+      "consensus": null,
+      "status": "PENDING"
+    },
+    {
+      "annotator_1": null,
+      "annotator_2": null,
+      "case_id": "behavioral-003",
+      "category": "BEHAVIORAL",
+      "consensus": null,
+      "status": "PENDING"
+    },
+    {
+      "annotator_1": null,
+      "annotator_2": null,
+      "case_id": "behavioral-004",
+      "category": "BEHAVIORAL",
+      "consensus": null,
+      "status": "PENDING"
+    },
+    {
+      "annotator_1": null,
+      "annotator_2": null,
+      "case_id": "behavioral-005",
+      "category": "BEHAVIORAL",
+      "consensus": null,
+      "status": "PENDING"
+    },
+    {
+      "annotator_1": null,
+      "annotator_2": null,
+      "case_id": "behavioral-006",
+      "category": "BEHAVIORAL",
+      "consensus": null,
+      "status": "PENDING"
+    }
+  ],
+  "created_at": "2026-09-27T12:00:00Z",
+  "frozen_at": null,
+  "human_labels": "PENDING",
+  "production_ci_gating": "DISABLED",
+  "schema_version": "1.0.0",
+  "status": "PENDING_HUMAN_ANNOTATION",
+  "target_application": "Conquer (POST /api/interview/score)"
+}
