@@ -290,9 +290,9 @@ benizakura benchmark hash evals/conquer/benchmark_v1.json
 
 # Generate blind annotation tasks and private unblinding key
 benizakura benchmark blind \
-  --benchmark evals/conquer/benchmark_v1.json \
-  --output-tasks evals/conquer/annotations/tasks_blind.json \
-  --output-key evals/conquer/annotations/blinding_key.json
+  evals/conquer/benchmark_v1.json \
+  --out-tasks evals/conquer/annotations/blinded_tasks.json \
+  --out-key evals/conquer/annotations/blinding_key_v1.json
 
 # Validate annotator submissions against schema
 benizakura benchmark annotation-validate evals/conquer/annotations/submissions
@@ -303,14 +303,14 @@ benizakura benchmark annotation-status evals/conquer/annotations/submissions
 # Compute human-human agreement (Cohen's κ) and check the calibration gate
 benizakura benchmark agreement \
   --submissions-dir evals/conquer/annotations/submissions \
-  --key evals/conquer/annotations/blinding_key.json
+  --key evals/conquer/annotations/blinding_key_v1.json
 
 # Adjudicate disagreements and compile consensus ground truth
 benizakura benchmark consensus \
   --submissions-dir evals/conquer/annotations/submissions \
-  --key evals/conquer/annotations/blinding_key.json \
+  --key evals/conquer/annotations/blinding_key_v1.json \
   --adjudications evals/conquer/annotations/adjudications.json \
-  --output evals/conquer/ground_truth_v1.json
+  --out evals/conquer/consensus_v1.json
 
 # Inspect and verify ground-truth artifact status
 benizakura benchmark ground-truth status --path evals/conquer/ground_truth_v1.json

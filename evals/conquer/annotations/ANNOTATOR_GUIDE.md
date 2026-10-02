@@ -89,7 +89,8 @@ Write a 2–4 sentence technical justification highlighting the decisive reason 
 
 ## Submission Protocol
 
-1. Annotators receive their assigned task batches in `evals/conquer/annotations/tasks/task_batch_<id>.json`.
+1. Annotators receive their assigned task batches from the canonical double-blind task file:
+   `evals/conquer/annotations/blinded_tasks.json`
 2. Save your completed evaluations into:
    ```text
    evals/conquer/annotations/submissions/<annotator_id>/<case_id>.json

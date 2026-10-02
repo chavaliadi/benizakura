@@ -261,6 +261,7 @@ evals/conquer/
 └── annotations/
     ├── ANNOTATION_SCHEMA.md        # This specification document
     ├── ANNOTATOR_GUIDE.md          # Handbook for human engineers
+    ├── blinded_tasks.json          # Canonical double-blind annotation tasks
     ├── blinding_key_v1.json        # Private unblinding key (Restricted access)
     ├── submissions/                # Raw submitted JSONs from annotators
     │   ├── human_001/
