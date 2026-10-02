@@ -433,7 +433,8 @@ Phase 3 Empirical Work — Human Ground Truth Calibration ⏳
   ├── Inter-rater agreement calculation (Cohen's κ)
   ├── Disagreement adjudication & consensus pending
   └── Ground-truth freeze pending (evals/conquer/ground_truth_v1.json)
-Phase 4 — Empirical LLM Judge Evaluation      ⏳ (Executing Variants A–E across verified model snapshots)
+Phase 4 — Empirical LLM Judge Evaluation      ⏳
+  └── Execute and compare Variants A–E after human ground truth is frozen
 Phase 5 — CI / Release-Gate Integration       ⏳ (Automated GitHub Actions PR regression gate)
 ```
 

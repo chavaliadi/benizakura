@@ -35,6 +35,20 @@ from benizakura.errors import (
     JudgeTimeoutError,
     JudgeValidationError,
 )
+from benizakura.hypotheses import (
+    HypothesisEvaluation,
+    HypothesisStatus,
+    evaluate_hypotheses,
+)
+from benizakura.result_schema import (
+    AggregateStatistics,
+    CaseDecision,
+    EXPERIMENT_SCHEMA_VERSION,
+    ExperimentResult,
+    InstabilityStatus,
+    ResultStatus,
+    validate_experiment_result,
+)
 from benizakura.models import (
     CriterionAssessment,
     EvaluationCase,
@@ -632,6 +646,19 @@ class ExperimentPlan:
     estimated_tokens: int
     is_dry_run: bool = True
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    software_version: str = "benizakura-0.1.0"
+    statistical_configuration: Dict[str, Any] = field(default_factory=lambda: {
+        "bootstrap_samples": 10000,
+        "confidence_level": 0.95,
+        "seed": 42,
+    })
+    gate_configuration: Dict[str, Any] = field(default_factory=lambda: {
+        "max_unstable_rate": 0.20,
+        "max_regression_rate": 0.25,
+        "regression_tolerance": -0.05,
+        "min_effect_threshold": 0.05,
+        "min_sample_size": 10,
+    })
 
     def to_dict(self) -> Dict[str, Any]:
         return sanitize_secrets({
@@ -648,6 +675,9 @@ class ExperimentPlan:
             "estimated_tokens": self.estimated_tokens,
             "is_dry_run": self.is_dry_run,
             "created_at": self.created_at,
+            "software_version": self.software_version,
+            "statistical_configuration": self.statistical_configuration,
+            "gate_configuration": self.gate_configuration,
         })
 
     def summary(self) -> str:
@@ -1210,11 +1240,34 @@ def summarize_experiment(
 
     bench_data = load_benchmark_data(benchmark_source)
     bench_cases = {c["case_id"]: c for c in bench_data.get("cases", [])}
+    computed_bench_hash = compute_benchmark_hash(benchmark_source)
+
+    manifest_file = exp_dir / "manifest.json"
+    manifest_info: Dict[str, Any] = {}
+    if manifest_file.is_file():
+        with open(manifest_file, "r", encoding="utf-8") as f:
+            manifest_info = json.load(f)
+
+    # Benchmark hash mismatch check
+    expected_b_hash = manifest_info.get("benchmark_sha256", EXPECTED_BENCHMARK_SHA256)
+    if bench_data.get("benchmark_id") == "conquer-benchmark-v1" and computed_bench_hash != expected_b_hash:
+        raise ExperimentError(
+            f"Benchmark hash mismatch blocks analysis: expected '{expected_b_hash}', computed '{computed_bench_hash}'."
+        )
 
     gt_data: Dict[str, Any] = {}
+    gt_sha = "unverified"
     if Path(ground_truth_source).is_file():
         with open(ground_truth_source, "r", encoding="utf-8") as f:
             gt_data = json.load(f)
+        gt_sha = hashlib.sha256(json.dumps(gt_data, sort_keys=True).encode("utf-8")).hexdigest()
+
+    # Ground truth hash mismatch check
+    manifest_gt_sha = manifest_info.get("ground_truth_sha256")
+    if manifest_gt_sha and manifest_gt_sha != "unverified" and gt_sha != "unverified" and manifest_gt_sha != gt_sha:
+        raise ExperimentError(
+            f"Ground truth hash mismatch blocks analysis: manifest recorded '{manifest_gt_sha}', current ground truth is '{gt_sha}'."
+        )
 
     gt_cases = {c["case_id"]: c for c in gt_data.get("cases", [])}
 
@@ -1227,9 +1280,15 @@ def summarize_experiment(
     summary_results: Dict[str, Any] = {
         "experiment_id": experiment_id,
         "timestamp": datetime.now(timezone.utc).isoformat(),
+        "benchmark_id": bench_data.get("benchmark_id", "conquer-benchmark-v1"),
+        "benchmark_sha256": computed_bench_hash,
+        "ground_truth_status": gt_data.get("status", "PENDING_HUMAN_ANNOTATION"),
+        "ground_truth_sha256": gt_sha,
         "configurations": {},
         "hypotheses_evidence": {},
     }
+
+    experiment_results_list: List[ExperimentResult] = []
 
     # Analyze each configuration
     for (judge_id, variant_code), decisions in grouped.items():
@@ -1287,48 +1346,96 @@ def summarize_experiment(
             "false_regression_count": false_regression_count,
         }
 
+        # Build formal CaseDecision list
+        case_decs: List[CaseDecision] = []
+        for d in decisions:
+            is_fail = (d.get("outcome") == "EXECUTION_FAILURE" or d.get("normalized_winner") is None)
+            case_decs.append(
+                CaseDecision(
+                    case_id=d["case_id"],
+                    pass_1_decision=d.get("forward_winner"),
+                    pass_2_decision=d.get("reverse_winner"),
+                    normalized_decision=None if is_fail else d.get("normalized_winner"),
+                    is_unstable=bool(d.get("is_unstable", False)),
+                    instability_status=InstabilityStatus.ORDER_UNSTABLE if d.get("is_unstable") else InstabilityStatus.STABLE,
+                    execution_status="PARSE_ERROR" if is_fail else "SUCCESS",
+                    failure_status="Execution failure" if is_fail else None,
+                )
+            )
+
+        # Status of result
+        if total_decisions == 0:
+            res_status = ResultStatus.MISSING_RESULT
+        elif valid_decisions == 0:
+            res_status = ResultStatus.EXECUTION_FAILURE
+        elif valid_decisions < 10 or unstable_rate > 0.20:
+            res_status = ResultStatus.INCONCLUSIVE_RESULT
+        else:
+            res_status = ResultStatus.VALID_RESULT
+
+        cand_wins = sum(1 for cd in case_decs if cd.normalized_decision == "CANDIDATE")
+        base_wins = sum(1 for cd in case_decs if cd.normalized_decision == "BASELINE")
+        tie_wins = sum(1 for cd in case_decs if cd.normalized_decision == "TIE")
+
+        h_base_total = sum(1 for h in human_ratings if h == "BASELINE")
+        h_cand_total = sum(1 for h in human_ratings if h == "CANDIDATE")
+
+        agg_stats = AggregateStatistics(
+            total_cases=total_decisions,
+            valid_decision_count=valid_decisions,
+            failed_decision_count=failed_count,
+            unstable_count=unstable_count,
+            position_dependent_error_rate=unstable_rate,
+            candidate_win_rate=cand_wins / valid_decisions if valid_decisions > 0 else 0.0,
+            baseline_win_rate=base_wins / valid_decisions if valid_decisions > 0 else 0.0,
+            tie_rate=tie_wins / valid_decisions if valid_decisions > 0 else 0.0,
+            kappa=kappa if judge_ratings else None,
+            kappa_se=se if judge_ratings else None,
+            raw_agreement=raw_agree if judge_ratings else None,
+            false_pass_rate=(false_pass_count / h_base_total) if h_base_total > 0 else None,
+            false_regression_rate=(false_regression_count / h_cand_total) if h_cand_total > 0 else None,
+        )
+
+        exp_result = ExperimentResult(
+            experiment_id=experiment_id,
+            benchmark_id=bench_data.get("benchmark_id", "conquer-benchmark-v1"),
+            benchmark_version=bench_data.get("version", "1.0.0"),
+            benchmark_sha256=computed_bench_hash,
+            ground_truth_status=gt_data.get("status", "PENDING_HUMAN_ANNOTATION"),
+            ground_truth_sha256=gt_sha,
+            judge_provider=judge_id.split("_")[1] if "_" in judge_id else judge_id,
+            model_snapshot=judge_id,
+            model_family="anthropic" if "claude" in judge_id.lower() else "openai",
+            temperature=0.0,
+            prompt_version="pairwise_rubric_v1" if variant_code in ("D", "E") else "pairwise_v1",
+            rubric_version="standard_rubric_v1",
+            experiment_variant=variant_code,
+            result_status=res_status,
+            case_decisions=case_decs,
+            aggregate_statistics=agg_stats,
+            kappa=kappa if judge_ratings else None,
+        )
+
+        # Validate result schema
+        val_errs = validate_experiment_result(exp_result)
+        if val_errs:
+            raise ExperimentError(f"ExperimentResult validation failed for {config_key}: {val_errs}")
+
+        experiment_results_list.append(exp_result)
+        with open(exp_dir / f"result_{config_key}.json", "w", encoding="utf-8") as f:
+            json.dump(exp_result.to_dict(), f, indent=2)
+
+    # Save primary result.json
+    if experiment_results_list:
+        with open(exp_dir / "result.json", "w", encoding="utf-8") as f:
+            json.dump(experiment_results_list[-1].to_dict(), f, indent=2)
+
     # Evaluate research hypotheses
-    h_evidence: Dict[str, Any] = {}
-
-    # H1: Bidirectional evaluation lowers position-dependent error compared with single-direction
-    sd_keys = [k for k in summary_results["configurations"] if "variant_B" in k]
-    bd_keys = [k for k in summary_results["configurations"] if "variant_C" in k]
-    if sd_keys and bd_keys:
-        h_evidence["H1_bidirectional_lowers_position_bias"] = {
-            "hypothesis": "Bidirectional evaluation detects and neutralizes position-dependent flips compared with single-direction.",
-            "single_direction_variants": sd_keys,
-            "bidirectional_variants": bd_keys,
-            "observed_instability_detected": [
-                summary_results["configurations"][k]["unstable_count"] for k in bd_keys
-            ],
-            "conclusion": "Hypothesis testable once live evaluation is executed.",
-        }
-
-    # H2: Rubric decomposition improves agreement
-    h_evidence["H2_rubric_improves_agreement"] = {
-        "hypothesis": "Rubric decomposition improves human agreement compared with unconstrained pairwise judging.",
-        "status": "Awaiting frozen ground truth and live execution.",
-    }
-
-    # H3: Rationale/criterion-first reduces instability
-    h_evidence["H3_rationale_first_reduces_instability"] = {
-        "hypothesis": "Rationale/criterion-first structured evaluation (R2) reduces instability compared to winner-first (R1).",
-        "status": "Schema variant R2 implemented; testable in comparative live sweeps.",
-    }
-
-    # H4: Independent judge family behaves differently on hallucinations
-    h_evidence["H4_independent_family_hallucination_divergence"] = {
-        "hypothesis": "Anthropic (independent family) diverges from OpenAI (same family) on hallucination probes.",
-        "status": "Probes identified (dsa-005, sys-005, backend-006, behavioral-006); testable on live run.",
-    }
-
-    # H5: Bootstrap confidence intervals reduce false regression alarms
-    h_evidence["H5_bootstrap_ci_reduces_false_regressions"] = {
-        "hypothesis": "Bootstrap confidence intervals and INCONCLUSIVE gating reduce false regression alarms.",
-        "status": "Gate logic implemented; testable against full benchmark runs.",
-    }
-
-    summary_results["hypotheses_evidence"] = h_evidence
+    h_eval = evaluate_hypotheses(
+        experiment_results=experiment_results_list,
+        ground_truth=gt_data if gt_data.get("status") == "GROUND_TRUTH_FROZEN" else None,
+    )
+    summary_results["hypotheses_evidence"] = {k: v.to_dict() for k, v in h_eval.items()}
 
     # Save summary artifact
     with open(exp_dir / "summary.json", "w", encoding="utf-8") as f:

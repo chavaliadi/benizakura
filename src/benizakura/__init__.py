@@ -95,6 +95,40 @@ from benizakura.experiment import (
     sanitize_secrets,
     summarize_experiment,
 )
+from benizakura.result_schema import (
+    AggregateStatistics,
+    CaseDecision,
+    EXPERIMENT_SCHEMA_VERSION,
+    ExperimentResult,
+    InstabilityStatus,
+    ResultStatus,
+    validate_experiment_result,
+)
+from benizakura.comparison import (
+    CategoryComparisonStats,
+    ComparisonReport,
+    CriterionComparisonStats,
+    ProbeComparisonStats,
+    compare_judge_to_human,
+)
+from benizakura.bias_analysis import (
+    AlternativeArchitectureReport,
+    BiasAnalysisReport,
+    CriterionTradeoffReport,
+    HallucinationDetectionReport,
+    NearTieBehaviorReport,
+    PositionSensitivityReport,
+    VerbositySensitivityReport,
+    analyze_bias_probes,
+)
+from benizakura.hypotheses import (
+    HypothesisEvaluation,
+    HypothesisStatus,
+    evaluate_hypotheses,
+)
+from benizakura.report import (
+    generate_experiment_report,
+)
 
 
 __all__ = [
@@ -183,8 +217,31 @@ __all__ = [
     "SimpleComparator",
     "PairwiseJudge",
     "MockPairwiseJudge",
-    "PairwiseJudgeCall",
     "BidirectionalPairwiseRunner",
+    "AggregateStatistics",
+    "CaseDecision",
+    "EXPERIMENT_SCHEMA_VERSION",
+    "ExperimentResult",
+    "InstabilityStatus",
+    "ResultStatus",
+    "validate_experiment_result",
+    "CategoryComparisonStats",
+    "ComparisonReport",
+    "CriterionComparisonStats",
+    "ProbeComparisonStats",
+    "compare_judge_to_human",
+    "AlternativeArchitectureReport",
+    "BiasAnalysisReport",
+    "CriterionTradeoffReport",
+    "HallucinationDetectionReport",
+    "NearTieBehaviorReport",
+    "PositionSensitivityReport",
+    "VerbositySensitivityReport",
+    "analyze_bias_probes",
+    "HypothesisEvaluation",
+    "HypothesisStatus",
+    "evaluate_hypotheses",
+    "generate_experiment_report",
 ]
 
 
