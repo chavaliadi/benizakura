@@ -1,0 +1,722 @@
+[
+  {
+    "case_id": "dsa-002",
+    "annotator_id": "REPLACE_WITH_YOUR_ID_E_G_human_001",
+    "presentation_order": "randomized",
+    "winner": "",
+    "confidence": 0.0,
+    "rationale": "",
+    "criterion_assessments": [
+      {
+        "criterion_name": "CORRECTNESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "RELEVANCE",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "COMPLETENESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "TECHNICAL_DEPTH",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "CLARITY",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "GROUNDEDNESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      }
+    ],
+    "timestamp": "YYYY-MM-DDTHH:MM:SSZ",
+    "status": "SUBMITTED"
+  },
+  {
+    "case_id": "dsa-003",
+    "annotator_id": "REPLACE_WITH_YOUR_ID_E_G_human_001",
+    "presentation_order": "randomized",
+    "winner": "",
+    "confidence": 0.0,
+    "rationale": "",
+    "criterion_assessments": [
+      {
+        "criterion_name": "CORRECTNESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "RELEVANCE",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "COMPLETENESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "TECHNICAL_DEPTH",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "CLARITY",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "GROUNDEDNESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      }
+    ],
+    "timestamp": "YYYY-MM-DDTHH:MM:SSZ",
+    "status": "SUBMITTED"
+  },
+  {
+    "case_id": "dsa-005",
+    "annotator_id": "REPLACE_WITH_YOUR_ID_E_G_human_001",
+    "presentation_order": "randomized",
+    "winner": "",
+    "confidence": 0.0,
+    "rationale": "",
+    "criterion_assessments": [
+      {
+        "criterion_name": "CORRECTNESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "RELEVANCE",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "COMPLETENESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "TECHNICAL_DEPTH",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "CLARITY",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "GROUNDEDNESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      }
+    ],
+    "timestamp": "YYYY-MM-DDTHH:MM:SSZ",
+    "status": "SUBMITTED"
+  },
+  {
+    "case_id": "sys-001",
+    "annotator_id": "REPLACE_WITH_YOUR_ID_E_G_human_001",
+    "presentation_order": "randomized",
+    "winner": "",
+    "confidence": 0.0,
+    "rationale": "",
+    "criterion_assessments": [
+      {
+        "criterion_name": "CORRECTNESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "RELEVANCE",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "COMPLETENESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "TECHNICAL_DEPTH",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "CLARITY",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "GROUNDEDNESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      }
+    ],
+    "timestamp": "YYYY-MM-DDTHH:MM:SSZ",
+    "status": "SUBMITTED"
+  },
+  {
+    "case_id": "sys-003",
+    "annotator_id": "REPLACE_WITH_YOUR_ID_E_G_human_001",
+    "presentation_order": "randomized",
+    "winner": "",
+    "confidence": 0.0,
+    "rationale": "",
+    "criterion_assessments": [
+      {
+        "criterion_name": "CORRECTNESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "RELEVANCE",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "COMPLETENESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "TECHNICAL_DEPTH",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "CLARITY",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "GROUNDEDNESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      }
+    ],
+    "timestamp": "YYYY-MM-DDTHH:MM:SSZ",
+    "status": "SUBMITTED"
+  },
+  {
+    "case_id": "sys-005",
+    "annotator_id": "REPLACE_WITH_YOUR_ID_E_G_human_001",
+    "presentation_order": "randomized",
+    "winner": "",
+    "confidence": 0.0,
+    "rationale": "",
+    "criterion_assessments": [
+      {
+        "criterion_name": "CORRECTNESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "RELEVANCE",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "COMPLETENESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "TECHNICAL_DEPTH",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "CLARITY",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "GROUNDEDNESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      }
+    ],
+    "timestamp": "YYYY-MM-DDTHH:MM:SSZ",
+    "status": "SUBMITTED"
+  },
+  {
+    "case_id": "sys-006",
+    "annotator_id": "REPLACE_WITH_YOUR_ID_E_G_human_001",
+    "presentation_order": "randomized",
+    "winner": "",
+    "confidence": 0.0,
+    "rationale": "",
+    "criterion_assessments": [
+      {
+        "criterion_name": "CORRECTNESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "RELEVANCE",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "COMPLETENESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "TECHNICAL_DEPTH",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "CLARITY",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "GROUNDEDNESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      }
+    ],
+    "timestamp": "YYYY-MM-DDTHH:MM:SSZ",
+    "status": "SUBMITTED"
+  },
+  {
+    "case_id": "backend-003",
+    "annotator_id": "REPLACE_WITH_YOUR_ID_E_G_human_001",
+    "presentation_order": "randomized",
+    "winner": "",
+    "confidence": 0.0,
+    "rationale": "",
+    "criterion_assessments": [
+      {
+        "criterion_name": "CORRECTNESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "RELEVANCE",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "COMPLETENESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "TECHNICAL_DEPTH",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "CLARITY",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "GROUNDEDNESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      }
+    ],
+    "timestamp": "YYYY-MM-DDTHH:MM:SSZ",
+    "status": "SUBMITTED"
+  },
+  {
+    "case_id": "backend-004",
+    "annotator_id": "REPLACE_WITH_YOUR_ID_E_G_human_001",
+    "presentation_order": "randomized",
+    "winner": "",
+    "confidence": 0.0,
+    "rationale": "",
+    "criterion_assessments": [
+      {
+        "criterion_name": "CORRECTNESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "RELEVANCE",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "COMPLETENESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "TECHNICAL_DEPTH",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "CLARITY",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "GROUNDEDNESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      }
+    ],
+    "timestamp": "YYYY-MM-DDTHH:MM:SSZ",
+    "status": "SUBMITTED"
+  },
+  {
+    "case_id": "backend-005",
+    "annotator_id": "REPLACE_WITH_YOUR_ID_E_G_human_001",
+    "presentation_order": "randomized",
+    "winner": "",
+    "confidence": 0.0,
+    "rationale": "",
+    "criterion_assessments": [
+      {
+        "criterion_name": "CORRECTNESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "RELEVANCE",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "COMPLETENESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "TECHNICAL_DEPTH",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "CLARITY",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "GROUNDEDNESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      }
+    ],
+    "timestamp": "YYYY-MM-DDTHH:MM:SSZ",
+    "status": "SUBMITTED"
+  },
+  {
+    "case_id": "frontend-002",
+    "annotator_id": "REPLACE_WITH_YOUR_ID_E_G_human_001",
+    "presentation_order": "randomized",
+    "winner": "",
+    "confidence": 0.0,
+    "rationale": "",
+    "criterion_assessments": [
+      {
+        "criterion_name": "CORRECTNESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "RELEVANCE",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "COMPLETENESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "TECHNICAL_DEPTH",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "CLARITY",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "GROUNDEDNESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      }
+    ],
+    "timestamp": "YYYY-MM-DDTHH:MM:SSZ",
+    "status": "SUBMITTED"
+  },
+  {
+    "case_id": "frontend-004",
+    "annotator_id": "REPLACE_WITH_YOUR_ID_E_G_human_001",
+    "presentation_order": "randomized",
+    "winner": "",
+    "confidence": 0.0,
+    "rationale": "",
+    "criterion_assessments": [
+      {
+        "criterion_name": "CORRECTNESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "RELEVANCE",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "COMPLETENESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "TECHNICAL_DEPTH",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "CLARITY",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "GROUNDEDNESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      }
+    ],
+    "timestamp": "YYYY-MM-DDTHH:MM:SSZ",
+    "status": "SUBMITTED"
+  },
+  {
+    "case_id": "behavioral-003",
+    "annotator_id": "REPLACE_WITH_YOUR_ID_E_G_human_001",
+    "presentation_order": "randomized",
+    "winner": "",
+    "confidence": 0.0,
+    "rationale": "",
+    "criterion_assessments": [
+      {
+        "criterion_name": "CORRECTNESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "RELEVANCE",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "COMPLETENESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "TECHNICAL_DEPTH",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "CLARITY",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "GROUNDEDNESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      }
+    ],
+    "timestamp": "YYYY-MM-DDTHH:MM:SSZ",
+    "status": "SUBMITTED"
+  },
+  {
+    "case_id": "behavioral-005",
+    "annotator_id": "REPLACE_WITH_YOUR_ID_E_G_human_001",
+    "presentation_order": "randomized",
+    "winner": "",
+    "confidence": 0.0,
+    "rationale": "",
+    "criterion_assessments": [
+      {
+        "criterion_name": "CORRECTNESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "RELEVANCE",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "COMPLETENESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "TECHNICAL_DEPTH",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "CLARITY",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "GROUNDEDNESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      }
+    ],
+    "timestamp": "YYYY-MM-DDTHH:MM:SSZ",
+    "status": "SUBMITTED"
+  },
+  {
+    "case_id": "behavioral-006",
+    "annotator_id": "REPLACE_WITH_YOUR_ID_E_G_human_001",
+    "presentation_order": "randomized",
+    "winner": "",
+    "confidence": 0.0,
+    "rationale": "",
+    "criterion_assessments": [
+      {
+        "criterion_name": "CORRECTNESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "RELEVANCE",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "COMPLETENESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "TECHNICAL_DEPTH",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "CLARITY",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      },
+      {
+        "criterion_name": "GROUNDEDNESS",
+        "winner": "",
+        "rationale": "",
+        "evidence": null
+      }
+    ],
+    "timestamp": "YYYY-MM-DDTHH:MM:SSZ",
+    "status": "SUBMITTED"
+  }
+]

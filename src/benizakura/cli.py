@@ -119,6 +119,11 @@ def _run_benchmark_cli(sub_argv: list[str]) -> int:
         default=None,
         help="Comma-separated list of authorized annotator IDs.",
     )
+    val_ann_parser.add_argument(
+        "--pilot",
+        action="store_true",
+        help="Validate as a 15-case pilot submission (enforces exact pilot_v1 case coverage).",
+    )
 
     # annotation-status
     stat_ann_parser = subparsers.add_parser("annotation-status", help="Check progress and coverage of human annotations.")
@@ -317,7 +322,11 @@ def _run_benchmark_cli(sub_argv: list[str]) -> int:
 
     elif args.benchmark_command == "annotation-validate":
         from benizakura.benchmark import load_benchmark_data
-        from benizakura.calibration import load_annotator_submissions, validate_submissions_batch
+        from benizakura.calibration import (
+            load_annotator_submissions,
+            validate_pilot_submissions_batch,
+            validate_submissions_batch,
+        )
 
         bench_data = load_benchmark_data(args.benchmark)
         cases = bench_data.get("cases", [])
@@ -329,23 +338,45 @@ def _run_benchmark_cli(sub_argv: list[str]) -> int:
             print(f"Failed to load submissions: {exc}", file=sys.stderr)
             return 1
 
-        is_valid, errors = validate_submissions_batch(
-            [s.to_dict() for s in submissions],
-            cases,
-            allowed_annotators=allowed_set,
-        )
+        is_pilot = getattr(args, "pilot", False)
+        if is_pilot:
+            is_valid, errors = validate_pilot_submissions_batch(
+                [s.to_dict() for s in submissions],
+                cases,
+                allowed_annotators=allowed_set,
+            )
+            print("Pilot Annotation Validation Report (15-Case Scope)")
+            print("=================================================")
+            print(f"Submissions Checked: {len(submissions)}")
+            print(f"Status:              {'VALID' if is_valid else 'INVALID'}")
+            print("Scope:               Pilot v1 (Reduced 15-Case Evaluation)")
+            if errors:
+                print(f"\nErrors ({len(errors)}):")
+                for err in errors:
+                    print(f"  [ERROR] {err}")
+                return 1
+            print("All 15 pilot submissions passed schema, criteria, and leakage validation.")
+            print("[NOTE] This is a reduced-scope pilot evaluation. Results do not modify or replace")
+            print("       the official 30-case benchmark and cannot unlock Phase 4.")
+            return 0
+        else:
+            is_valid, errors = validate_submissions_batch(
+                [s.to_dict() for s in submissions],
+                cases,
+                allowed_annotators=allowed_set,
+            )
 
-        print(f"Annotation Validation Report")
-        print(f"============================")
-        print(f"Submissions Checked: {len(submissions)}")
-        print(f"Status:              {'VALID' if is_valid else 'INVALID'}")
-        if errors:
-            print(f"\nErrors ({len(errors)}):")
-            for err in errors:
-                print(f"  [ERROR] {err}")
-            return 1
-        print("All submissions passed schema, criteria, and leakage validation.")
-        return 0
+            print(f"Annotation Validation Report")
+            print(f"============================")
+            print(f"Submissions Checked: {len(submissions)}")
+            print(f"Status:              {'VALID' if is_valid else 'INVALID'}")
+            if errors:
+                print(f"\nErrors ({len(errors)}):")
+                for err in errors:
+                    print(f"  [ERROR] {err}")
+                return 1
+            print("All submissions passed schema, criteria, and leakage validation.")
+            return 0
 
     elif args.benchmark_command == "annotation-status":
         from benizakura.benchmark import load_benchmark_data

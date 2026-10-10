@@ -41,6 +41,24 @@ FORBIDDEN_LEAKAGE_KEYS: Set[str] = {
     "ground_truth",
 }
 
+PILOT_V1_CASE_IDS: Set[str] = {
+    "dsa-002",
+    "dsa-003",
+    "dsa-005",
+    "sys-001",
+    "sys-003",
+    "sys-005",
+    "sys-006",
+    "backend-003",
+    "backend-004",
+    "backend-005",
+    "frontend-002",
+    "frontend-004",
+    "behavioral-003",
+    "behavioral-005",
+    "behavioral-006",
+}
+
 
 class GroundTruthStatus:
     PENDING_HUMAN_ANNOTATION = "PENDING_HUMAN_ANNOTATION"
@@ -493,6 +511,47 @@ def validate_submissions_batch(
         if pair_key in seen_pairs:
             errors.append(f"Duplicate submission detected from annotator '{pair_key[0]}' for case '{pair_key[1]}'.")
         seen_pairs.add(pair_key)
+
+    return len(errors) == 0, errors
+
+
+def validate_pilot_submissions_batch(
+    submissions: List[Dict[str, Any]],
+    benchmark_cases: List[Dict[str, Any]],
+    expected_pilot_case_ids: Optional[Set[str]] = None,
+    allowed_annotators: Optional[Set[str]] = None,
+) -> Tuple[bool, List[str]]:
+    """Validate a batch of annotator submissions specifically for the pilot v1 15-case pack.
+
+    Enforces that:
+    1. All submissions pass standard schema, criteria, and leakage checks.
+    2. Every submitted case belongs to the authorized pilot case set (default: PILOT_V1_CASE_IDS).
+    3. Each annotator submits exactly the full set of 15 pilot cases (no missing or extraneous cases).
+    4. Pilot submissions are isolated and cannot be used for official 30-case ground-truth freezing.
+    """
+    target_pilot_ids = expected_pilot_case_ids if expected_pilot_case_ids is not None else PILOT_V1_CASE_IDS
+
+    # Base validation against benchmark
+    is_valid, errors = validate_submissions_batch(submissions, benchmark_cases, allowed_annotators)
+
+    # Check pilot-specific constraints
+    by_annotator: Dict[str, Set[str]] = {}
+    for sub in submissions:
+        if isinstance(sub, dict) and "case_id" in sub and "annotator_id" in sub:
+            cid = str(sub["case_id"])
+            aid = str(sub["annotator_id"])
+            by_annotator.setdefault(aid, set()).add(cid)
+
+            if cid not in target_pilot_ids:
+                errors.append(f"[{cid}] Case is not part of the pilot subset ({len(target_pilot_ids)} cases).")
+
+    for aid, submitted_cids in by_annotator.items():
+        missing = target_pilot_ids - submitted_cids
+        if missing:
+            errors.append(f"Annotator '{aid}' is missing {len(missing)} pilot cases: {sorted(missing)}.")
+        extra = submitted_cids - target_pilot_ids
+        if extra:
+            errors.append(f"Annotator '{aid}' submitted cases outside pilot scope: {sorted(extra)}.")
 
     return len(errors) == 0, errors
 

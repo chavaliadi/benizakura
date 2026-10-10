@@ -72,7 +72,9 @@ from benizakura.calibration import (
     compute_cohens_kappa,
     freeze_ground_truth_artifact,
     load_annotator_submissions,
+    PILOT_V1_CASE_IDS,
     validate_annotator_submission,
+    validate_pilot_submissions_batch,
     validate_submissions_batch,
 )
 from benizakura.experiment import (
@@ -165,10 +167,12 @@ __all__ = [
     "execute_experiment",
     "freeze_ground_truth_artifact",
     "load_annotator_submissions",
+    "PILOT_V1_CASE_IDS",
     "plan_experiment",
     "sanitize_secrets",
     "summarize_experiment",
     "validate_annotator_submission",
+    "validate_pilot_submissions_batch",
     "validate_submissions_batch",
     "BenizakuraJudgeError",
     "BidirectionalEvaluationResult",
